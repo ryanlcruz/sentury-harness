@@ -1,0 +1,7 @@
+﻿{
+    "source":  "https://github.com/ryanlcruz/RobinBandit.git",
+    "branch":  "main",
+    "commit":  "d7f4463c79b6846db8acbfadebb0f2b8cfc07cac",
+    "synchronized_at_utc":  "2026-10-07T23:28:20Z",
+    "integration":  "headless via /sentury/robinbandit"
+}

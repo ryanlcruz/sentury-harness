@@ -1,0 +1,46 @@
+# Que artefatos o Sentury reconhece, e como cada um é entregue.
+#
+# Isto é catálogo, não lógica: adicionar um formato novo é uma linha aqui, e
+# não uma alteração no orquestrador. O código lê e aplica.
+#
+# Uma consequência de estar em arquivo: o `mime` é a mesma informação em três
+# lugares (export binário, varredura do sandbox, anexo embutido), e antes as
+# três listas viviam separadas no código, livres para divergir.
+
+versao: 1
+
+# Tipo de arquivo reconhecido: extensão -> mime. Esta é a fonte; as listas de
+# padrão e de extensão são derivadas dela.
+tipos:
+  png: image/png
+  svg: image/svg+xml
+  html: text/html
+  excalidraw: application/json
+  pptx: application/vnd.openxmlformats-officedocument.presentationml.presentation
+  xlsx: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+  csv: text/csv
+  pdf: application/pdf
+  # Faltava, e era a entrega do benchmark: "me entrega isso num arquivo .md".
+  # O sandbox ja podia gravar .md, mas sem o tipo aqui o arquivo nao virava anexo.
+  md: text/markdown
+
+# Extensões que contam como arquivo quando a resposta cita um nome: a resposta
+# que diz ter criado `conversor.py` sem nenhuma gravação volta ao agente, como
+# a que diz ter gerado um PDF. Somam-se às de `tipos`. Nome de código como
+# `json.dumps` não tem extensão desta lista e não é confundido com arquivo.
+extensoes_citaveis: [
+  txt, json, jsonl, yaml, yml, toml, ini, cfg, conf, env, xml, log, sql, sqlite, db,
+  py, ipynb, js, mjs, cjs, ts, tsx, jsx, vue, css, scss, htm, sh, bash, ps1, bat, cmd,
+  go, rs, java, kt, c, h, cpp, hpp, cs, rb, php, swift, r, lua, dart,
+  doc, docx, odt, rtf, xls, ods, ppt, odp, tsv, parquet,
+  jpg, jpeg, gif, webp, bmp, ico, tif, tiff, heic, mp3, wav, ogg, flac, m4a, mp4, mov, avi, mkv, webm,
+  zip, tar, gz, tgz, rar, 7z, exe, msi, apk, dmg, iso, epub, ics, vcf, eml, lock,
+]
+
+# Ferramentas que devolvem arquivo binário: qual extensão cada uma produz.
+export_binario:
+  generate_chart: png
+  export_xlsx: xlsx
+  export_csv: csv
+  export_pdf: pdf
+  export_html: html

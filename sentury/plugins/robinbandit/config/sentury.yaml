@@ -1,0 +1,14 @@
+herda: padrao
+
+version: 1
+agent_mode: sentury
+
+secrets:
+  vault_path_env: SENTURY_VAULT_PATH
+  account_config_path_env: SENTURY_ACCOUNTS_PATH
+
+providers:
+  openrouter:
+    # Sem HTTP-Referer ate existir um dominio publico atual. Este header e
+    # apenas identificacao no painel; nao autentica nem altera o roteamento.
+    extra_headers: {X-OpenRouter-Title: Sentury}

@@ -1,0 +1,30 @@
+script:
+  atendimento: catalogo
+  extras_permitidos: [diretorio, timeout]
+  ferramenta: executar_script
+  capacidade: script
+  pedido: 'Use executar_script para rodar em Python o conteúdo exatamente print(sum([6, 7, 8])). Quero o stdout da execução real, não um anúncio nem o cálculo feito na resposta. Não crie arquivos de entrega.'
+  argumentos:
+    linguagem: python
+    conteudo: 'print(sum([6, 7, 8]))'
+  contem: ['21']
+  funcoes: []
+browser:
+  atendimento: tato
+  ferramenta: browser
+  capacidade: navegador
+  pedido: 'A aba de teste já está aberta. Use browser com acao snapshot, sem navegar ou clicar, e informe o título que a observação devolver.'
+  argumentos:
+    acao: snapshot
+  contem: ['Example Domain']
+  funcoes: [navegador]
+computador:
+  atendimento: tato
+  ferramenta: computador
+  capacidade: computador
+  pedido: 'Verifique pelo computador, acao programas e nome Calculadora, se a Calculadora está instalada. Informe o que a ferramenta mostrou, sem abrir nada nem listar outras janelas.'
+  argumentos:
+    acao: programas
+    nome: Calculadora
+  contem: ['Calculadora', 'instalada']
+  funcoes: [computador]

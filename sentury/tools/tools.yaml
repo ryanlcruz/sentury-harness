@@ -1,0 +1,2563 @@
+# Ferramentas do motor: o que qualquer setor, inclusive o generalista, enxerga.
+#
+# Declarar aqui e o que faz a ferramenta existir para o modelo, para a policy e
+# para o catalogo. Executar e outra coisa: o despacho mora no codigo
+# (`tools/catalog.py`), e ferramenta sem despacho responde "desconhecida".
+#
+# Campos:
+#   categoria          exibicao; decide a porta da policy (ver CATEGORIA_TO_GATE)
+#   descricao          uma linha, para listas e para a descoberta
+#   orientacao         como e quando usar, curta; vai para o prompt do turno
+#   manual             detalhe de uso (formatos, exemplos); so o `buscar_conhecimento` devolve
+#   quando_usar        frases que a descoberta casa com o pedido
+#   exposta_ao_modelo  false esconde do modelo (padrao: true)
+#   so_com_funcao      so aparece ao modelo com essa funcao do `@` ligada (ex.: computador)
+#   nucleo             true nunca sai da chamada, mesmo com corte por relevancia
+#   ponte              true: chama outra ferramenta pelo nome (`nome`, `argumentos`); so vai
+#                      sob demanda e vira a chamada de dentro antes da policy
+#   texto_de_terceiros true poe o resultado dentro da fronteira de texto de fora
+#   traz_dado          true: o resultado e dado de fora e serve de lastro para grafico, planilha ou HTML
+#   determinista       false marca o traco do turno como nao repetivel
+#   replay_leitura     true permite repetir a leitura contra o ambiente atual, sem resultado gravado
+#   interrompivel      o Parar pode cortar no meio (padrao: so analise e conhecimento)
+#   parametros         JSON Schema dos argumentos (ausente = objeto livre)
+#   efeito             leitura (só observa), escrita (muda algo) ou destrutiva (apaga ou não
+#                      dá para desfazer). Com `acoes`, é o da ação mais forte
+#   acoes              o efeito de cada valor de `acao`, quando a ferramenta tem várias
+#   aprendizado        escreve ou consulta: responde na pausa de revisão do aprendizado
+#   titulo             o que a linha do passo diz na tela; `{argumento}` usa o valor dele
+#   titulos_pelo_codigo  título pelo trecho do código (`trechos`, `titulo`); o primeiro achado vence
+#
+# Ferramenta de setor mora em `domains/setores/<setor>/tools.yaml`.
+
+inspecionar_ambiente:
+  destino_residente: hq
+  categoria: conhecimento
+  efeito: leitura
+  tipo_na_tela: read
+  intencao: consultar
+  interrompivel: true
+  replay_leitura: true
+  determinista: false
+  traz_dado: true
+  texto_de_terceiros: true
+  descricao: Lê processos, janelas, portas locais, disco e sistema da máquina da HQ.
+  orientacao: >-
+    A inspeção lê a máquina onde o Sentury roda e não aceita comando livre.
+    Considere quando precisar conferir processos, janelas, escuta local, disco ou
+    ambiente sem executar um comando. CPU vem em segundos acumulados, não em percentual.
+    Campos que o sistema não fornece aparecem como indisponível aqui.
+  parametros:
+    type: object
+    properties:
+      alvo:
+        type: string
+        enum: [processos, janelas, portas, disco, sistema]
+        default: sistema
+    additionalProperties: false
+
+executar_python:
+  titulo: Executando o passo em código
+  # O título pelo que o código faz: o primeiro trecho achado vence.
+  titulos_pelo_codigo:
+    - {trechos: [save_html, '<html'], titulo: 'Escrevendo o HTML: estrutura, CSS e conteúdo'}
+    - {trechos: [save_pptx, pptx, slide], titulo: Montando a apresentação}
+    - {trechos: [save_svg, mermaid, excalidraw], titulo: Desenhando o diagrama}
+    - {trechos: ['plot(', chart, matplotlib], titulo: Montando o gráfico em código}
+    - {trechos: [gif_search], titulo: Procurando o gif}
+    - {trechos: [buscar_web, requests.get, httpx.get, urlopen], titulo: Buscando fora do dataset}
+    - {trechos: [read_csv, read_excel, 'open('], titulo: Lendo o arquivo}
+    - {trechos: [groupby, 'mean(', 'sum(', 'corr(', pivot, 'describe('], titulo: Calculando sobre os dados}
+    - {trechos: [to_excel, to_csv, save_], titulo: Gerando o arquivo}
+  nucleo: true
+  saida_terminal: true
+  destino_residente: caixa
+  operacao_caixa: python
+  categoria: analise
+  efeito: escrita
+  quando_usar:
+    - somar coluna calcular media total de planilha csv tabela
+  descricao: >-
+    Roda Python (pandas, numpy, matplotlib) para cálculo, laço ou volume que as outras
+    ferramentas não cobrem.
+  orientacao: >-
+    Chame com o código; script escrito só na resposta não roda. `open()` lê qualquer pasta
+    liberada e `sqlite3` está disponível; `os` e `pathlib` não. Arquivo gravado no script
+    (`df.to_csv("x.csv")`, `plt.savefig("x.png")`, `open("x.md", "w")`) vai para o rascunho
+    e chega à pessoa como anexo. Plano e workflow têm ferramenta própria (`criar_plano`,
+    `criar_workflow`), que grava o estado junto.
+  texto_de_terceiros: true
+  parametros:
+    type: object
+    properties:
+      codigo:
+        type: string
+        description: Codigo Python a executar.
+    additionalProperties: true
+    required:
+      - codigo
+# Compatibilidade: o despacho ainda aceita chamadas antigas, mas nao vai ao
+# modelo. So gravava um nome que nada resolvia.
+save_analysis:
+  destino_residente: proibida
+  categoria: exportacao
+  efeito: escrita
+  descricao: Alias legado para nomear um resultado na sessão.
+  exposta_ao_modelo: false
+  parametros:
+    type: object
+    properties:
+      source:
+        type: string
+      nome:
+        type: string
+    additionalProperties: true
+gerar_imagem:
+  funcoes_disponiveis: [image]
+  destino_residente: proibida
+  categoria: exportacao
+  efeito: escrita
+  descricao: >-
+    Gera uma imagem a partir de texto. So com @image no pedido; exige modelo de imagem configurado.
+  orientacao: >-
+    desenha uma imagem a partir de texto. So use quando a mensagem trouxer `@image`; sem esse
+    marcador o pedido de "grafico"/"visual" e grafico de dados, nao desenho. Sem modelo de
+    imagem configurado a ferramenta avisa; repasse o aviso em vez de inventar.
+  quando_usar:
+    - '@image desenhe ilustre gere uma imagem arte visual'
+  parametros:
+    type: object
+    properties:
+      prompt:
+        type: string
+    additionalProperties: true
+    required:
+      - prompt
+agenda:
+  destino_residente: hq
+  categoria: execucao
+  efeito: escrita
+  acoes:
+    agendar: escrita
+    listar: leitura
+    cancelar: escrita
+  tipo_na_tela: edit
+  intencao: alterar
+  determinista: false
+  descricao: >-
+    Agenda uma tarefa simples para depois, lista o que está agendado nesta conversa ou
+    cancela um agendamento.
+  orientacao: >-
+    `agendar` com `tarefa` guarda uma instrução simples; processo de várias etapas é
+    workflow. Para recorrência, `cron` ("toda segunda às 9h" = `0 9 * * 1`) ou
+    `intervalo_seg`; para uma vez só, `executar_em` em ISO 8601. `listar` mostra o que está
+    agendado; `cancelar` com `id` desliga.
+  quando_usar:
+    - me avise me lembre executar uma tarefa depois agendar tarefa simples
+    - o que esta agendado meus agendamentos rotinas ativas
+    - cancelar parar desativar agendamento rotina
+  parametros:
+    type: object
+    properties:
+      acao:
+        type: string
+        enum: [agendar, listar, cancelar]
+      tarefa:
+        type: string
+        description: O que fazer (acao agendar).
+      cron:
+        type: string
+      intervalo_seg:
+        type: integer
+        minimum: 1
+      quando:
+        type: string
+      executar_em:
+        type: string
+        description: Data e hora ISO 8601 para executar uma única vez.
+      id:
+        type: string
+        description: O agendamento a cancelar (acao cancelar).
+    additionalProperties: true
+    required:
+      - acao
+schedule_task:
+  destino_residente: hq
+  categoria: execucao
+  efeito: escrita
+  exposta_ao_modelo: false
+  descricao: >-
+    Agenda uma tarefa simples e isolada. Workflow e agendamento sao conceitos separados.
+  orientacao: >-
+    agenda uma instrucao simples para rodar depois (lembrete ou tarefa isolada). Nao use para
+    montar um workflow. Converta o pedido em cron somente quando a pessoa pedir recorrencia:
+    "toda segunda de manha" = `0 9 * * 1`, "todo dia as 18h" = `0 18 * * *`; para "a cada
+    30 minutos" use intervalo_seg=1800.
+  quando_usar:
+    - me avise me lembre executar uma tarefa depois agendar tarefa simples
+  determinista: false
+  parametros:
+    type: object
+    properties:
+      tarefa:
+        type: string
+      cron:
+        type: string
+      intervalo_seg:
+        type: integer
+        minimum: 1
+      quando:
+        type: string
+      executar_em:
+        type: string
+        description: Data e hora ISO 8601 para executar uma unica vez.
+    additionalProperties: true
+    required:
+      - tarefa
+list_schedules:
+  destino_residente: hq
+  categoria: conhecimento
+  efeito: leitura
+  exposta_ao_modelo: false
+  descricao: Lista o que ja esta agendado nesta conversa.
+  orientacao: o que ja esta agendado nesta conversa.
+  quando_usar:
+    - o que esta agendado meus agendamentos rotinas ativas
+cancel_schedule:
+  destino_residente: hq
+  categoria: execucao
+  efeito: escrita
+  exposta_ao_modelo: false
+  descricao: Cancela um agendamento pelo id.
+  orientacao: cancela um agendamento.
+  quando_usar:
+    - cancelar parar desativar agendamento rotina
+  parametros:
+    type: object
+    properties:
+      id:
+        type: string
+    additionalProperties: true
+    required:
+      - id
+onde_definido:
+  destino_residente: proibida
+  categoria: conhecimento
+  efeito: leitura
+  exposta_ao_modelo: false
+  descricao: Onde uma funcao ou classe e definida, com assinatura e arquivo.
+  orientacao: onde uma funcao ou classe e definida.
+  quando_usar:
+    - onde esta definida achar funcao classe implementacao
+  parametros:
+    type: object
+    properties:
+      pasta:
+        type: string
+        description: Pasta onde procurar. Sem ela, a pasta de trabalho.
+      nome:
+        type: string
+    additionalProperties: true
+    required:
+      - nome
+quem_usa:
+  destino_residente: proibida
+  categoria: conhecimento
+  efeito: leitura
+  exposta_ao_modelo: false
+  descricao: >-
+    Quem referencia um nome no projeto. Use antes de alterar algo, para saber quem depende.
+  orientacao: >-
+    quem referencia esse nome. Use antes de alterar: quem nao sabe quem depende, altera no
+    escuro.
+  quando_usar:
+    - quem usa quem chama impacto dependencia antes de mudar referencias
+  parametros:
+    type: object
+    properties:
+      pasta:
+        type: string
+        description: Pasta onde procurar. Sem ela, a pasta de trabalho.
+      nome:
+        type: string
+    additionalProperties: true
+    required:
+      - nome
+mapa_do_arquivo:
+  destino_residente: proibida
+  categoria: conhecimento
+  efeito: leitura
+  exposta_ao_modelo: false
+  descricao: >-
+    O que existe num arquivo Python (funcoes, classes, tamanho) sem precisar ler o arquivo
+    inteiro.
+  orientacao: o que existe num arquivo Python sem ler ele inteiro.
+  quando_usar:
+    - estrutura do arquivo o que tem nele resumo do modulo arquivo grande
+  parametros:
+    type: object
+    properties:
+      caminho:
+        type: string
+    additionalProperties: true
+    required:
+      - caminho
+ler_arquivo:
+  nucleo: true
+  destino_residente: caixa
+  operacao_caixa: ler
+  categoria: conhecimento
+  efeito: leitura
+  # O arquivo pode mudar ou depender de uma escrita que o replay nao refaz.
+  replay_leitura: false
+  traz_dado: true
+  descricao: >-
+    Le um arquivo de texto do projeto. Aceita inicio e linhas para ler so um trecho.
+  orientacao: >-
+    le um arquivo de texto do projeto. Se voltar `truncado: true`, sobrou conteudo: peca o
+    resto em vez de concluir a partir do trecho. le um arquivo do projeto. PDF, planilha,
+    Word e slide viram Markdown automaticamente (`convertido: true`). `truncado: true` = sobrou
+    conteudo; peca o resto.
+  quando_usar:
+    - ver o conteudo abrir arquivo codigo fonte conferir o que esta escrito
+  texto_de_terceiros: true
+  parametros:
+    type: object
+    properties:
+      caminho:
+        type: string
+      inicio:
+        type: integer
+        minimum: 1
+      linhas:
+        type: integer
+        minimum: 0
+    additionalProperties: true
+    required:
+      - caminho
+listar_arquivos:
+  nucleo: true
+  destino_residente: caixa
+  operacao_caixa: listar
+  categoria: conhecimento
+  efeito: leitura
+  # O conteudo da pasta deve ser o do turno gravado, nao o do disco atual.
+  replay_leitura: false
+  traz_dado: true
+  descricao: Lista o que existe numa pasta do projeto.
+  orientacao: >-
+    para olhar as subpastas tambem, use `padrao="**/*"` numa chamada so, em vez de descer
+    nivel por nivel; cada item traz `caminho` relativo. Caminho relativo resolve contra a
+    pasta de trabalho, nao contra a pasta que o usuario citou — quando ele der um caminho
+    absoluto, use o absoluto.
+  quando_usar:
+    - o que tem na pasta ver arquivos estrutura diretorio
+  parametros:
+    type: object
+    properties:
+      caminho:
+        type: string
+      padrao:
+        type: string
+    additionalProperties: true
+escrever_arquivo:
+  nucleo: true
+  destino_residente: caixa
+  operacao_caixa: escrever
+  categoria: execucao
+  efeito: escrita
+  descricao: Cria ou substitui um arquivo inteiro. Pede autorizacao ao usuario.
+  orientacao: >-
+    grava no disco e pede autorizacao. Gravar nao entrega: para a pessoa receber o arquivo
+    na conversa, chame `entregar_arquivo` depois.
+  quando_usar:
+    - criar arquivo salvar escrever gerar codigo novo
+  parametros:
+    type: object
+    properties:
+      caminho:
+        type: string
+      conteudo:
+        type: string
+    additionalProperties: true
+    required:
+      - caminho
+      - conteudo
+editar_arquivo:
+  nucleo: true
+  destino_residente: caixa
+  operacao_caixa: editar
+  categoria: execucao
+  efeito: escrita
+  descricao: >-
+    Troca um trecho exato por outro num arquivo. Exige o texto de antes; pede autorizacao.
+  orientacao: >-
+    troca um trecho exato por outro. `antes` precisa ser o texto como esta no arquivo agora:
+    leia antes de editar. Se o trecho aparecer mais de uma vez, a ferramenta para - inclua
+    mais contexto em vez de chutar. troca um trecho exato. `antes` tem que ser o texto como
+    esta agora: leia antes de editar.
+  quando_usar:
+    - alterar corrigir trocar ajustar linha modificar codigo existente
+  parametros:
+    type: object
+    properties:
+      caminho:
+        type: string
+      antes:
+        type: string
+      depois:
+        type: string
+      todas:
+        type: boolean
+    additionalProperties: true
+    required:
+      - caminho
+      - antes
+      - depois
+command_status:
+  saida_terminal: true
+  destino_residente: proibida
+  categoria: conhecimento
+  efeito: leitura
+  exposta_ao_modelo: false
+  descricao: >-
+    Resultado de um comando que passou do tempo e continua rodando em segundo plano. Use o
+    id devolvido por executar_comando.
+  orientacao: o resultado (ou o parcial) de um comando que ficou rodando.
+  quando_usar:
+    - comando demorado build instalacao teste resultado depois terminou
+  parametros:
+    type: object
+    properties:
+      id:
+        type: string
+    additionalProperties: true
+    required:
+      - id
+processos:
+  saida_terminal: true
+  destino_residente: proibida
+  categoria: execucao
+  efeito: escrita
+  acoes:
+    listar: leitura
+    ver: leitura
+    encerrar: escrita
+  tipo_na_tela: execute
+  intencao: alterar
+  descricao: >-
+    Lista, mostra o resultado ou encerra os comandos que rodam em segundo plano.
+  orientacao: >-
+    `listar` mostra o que ainda roda (`apenas_rodando: false` inclui os que terminaram).
+    `ver` com `id` traz o resultado, ou o parcial, de um comando que passou do tempo; o `id`
+    vem do `executar_comando`. `encerrar` com `id` para um comando travado; considere só
+    quando a pessoa pedir, porque o trabalho dele se perde.
+  quando_usar:
+    - o que esta rodando processos em andamento
+    - comando demorado build instalacao teste resultado depois terminou
+    - cancelar matar parar comando travado
+  parametros:
+    type: object
+    properties:
+      acao:
+        type: string
+        enum: [listar, ver, encerrar]
+      id:
+        type: string
+        description: O id do comando (acoes ver e encerrar).
+      apenas_rodando:
+        type: boolean
+        description: Na acao listar, false inclui os que já terminaram.
+    additionalProperties: true
+    required:
+      - acao
+running_commands:
+  destino_residente: proibida
+  categoria: conhecimento
+  efeito: leitura
+  exposta_ao_modelo: false
+  descricao: Lista os comandos que ainda estao rodando em segundo plano.
+  orientacao: o que ainda esta rodando.
+  quando_usar:
+    - o que esta rodando processos em andamento
+  parametros:
+    type: object
+    properties:
+      apenas_rodando:
+        type: boolean
+    additionalProperties: true
+kill_command:
+  destino_residente: proibida
+  categoria: execucao
+  efeito: escrita
+  exposta_ao_modelo: false
+  descricao: >-
+    Encerra um comando em segundo plano que travou ou nao e mais necessario.
+  orientacao: encerra um comando travado. So por pedido do usuario.
+  quando_usar:
+    - cancelar matar parar comando travado
+  parametros:
+    type: object
+    properties:
+      id:
+        type: string
+    additionalProperties: true
+    required:
+      - id
+entregar_arquivo:
+  destino_residente: proibida
+  categoria: exportacao
+  efeito: escrita
+  descricao: >-
+    Anexa um arquivo do projeto na conversa, para o usuario baixar. Escrever no disco nao
+    entrega nada a quem esta conversando.
+  orientacao: >-
+    e o unico jeito de a pessoa receber um arquivo. Sem ele, o arquivo existe na maquina e
+    quem esta conversando nao recebe nada — nunca diga que entregou sem ter chamado.
+  quando_usar:
+    - me manda o arquivo anexa baixar enviar o md o csv que voce criou
+  parametros:
+    type: object
+    properties:
+      caminho:
+        type: string
+    additionalProperties: true
+    required:
+      - caminho
+checar_pacote:
+  destino_residente: proibida
+  categoria: conhecimento
+  efeito: leitura
+  descricao: >-
+    Consulta o OSV antes de instalar um pacote: alerta de malware bloqueia, vulnerabilidade
+    conhecida avisa.
+  orientacao: >-
+    consulta o OSV antes de instalar algo. Alerta de malware impede a instalacao; vulnerabilidade
+    conhecida e aviso, nao bloqueio. Use antes de rodar `pip install` ou `npm install` de
+    um pacote que voce nao conhece.
+  quando_usar:
+    - >-
+      instalar pacote dependencia npm pip seguro malware vulnerabilidade cve biblioteca confiavel
+  parametros:
+    type: object
+    properties:
+      pacote:
+        type: string
+      ecossistema:
+        type: string
+      versao:
+        type: string
+    additionalProperties: true
+    required:
+      - pacote
+usar_mcp:
+  destino_residente: proibida
+  categoria: conhecimento
+  efeito: escrita
+  traz_dado: true
+  descricao: >-
+    Executa uma ferramenta de um servidor MCP conectado. Precisa do servidor e do nome da
+    ferramenta.
+  orientacao: >-
+    executa uma ferramenta de um servidor MCP conectado. As ferramentas disponiveis aparecem
+    na secao SERVIDORES MCP do turno; se essa secao nao existir, nao ha servidor conectado
+    e voce diz isso em vez de supor.
+  quando_usar:
+    - mcp servidor externo ferramenta conectada integracao
+  determinista: false
+  parametros:
+    type: object
+    properties:
+      servidor:
+        type: string
+      ferramenta:
+        type: string
+      argumentos:
+        type: object
+    additionalProperties: true
+    required:
+      - servidor
+      - ferramenta
+browser:
+  funcoes_disponiveis: [navegador]
+  destino_residente: caixa
+  operacao_caixa: browser
+  categoria: browser
+  efeito: escrita
+  acoes:
+    snapshot: leitura
+    console: leitura
+    imagens: leitura
+    clicar: escrita
+    digitar: escrita
+    navegar: escrita
+    rolar: escrita
+    roteiro: escrita
+    encerrar: escrita
+  traz_dado: true
+  orcamento_do_turno: {max_loops: 20, max_tool_calls: 40, max_elapsed_ms: 600000, max_total_tokens: 600000, max_consecutive_no_progress: 3}
+  descricao: >-
+    Abre e opera uma página num navegador de verdade: clicar, preencher, rolar.
+  orientacao: >-
+    Considere quando precisa clicar, preencher, ou a página só monta com JavaScript; para só
+    ler uma página pública, `ler_pagina` é mais barato. Comece por `navegar`, que já devolve
+    a árvore com refs (`e8`), e mire `clicar` e `digitar` numa ref observada, nunca
+    inventada. Em `clicar` e `digitar`, `consequencia` é `nenhuma` (filtro, busca, menu) ou
+    `comunicar` (enviar, publicar, se candidatar). Com o caminho conhecido, `roteiro` roda
+    vários passos numa chamada. A ref é endereço do Sentury, não dado da página. Formatos e
+    exemplos: `buscar_conhecimento` com "browser".
+  manual: >-
+    opera uma página num navegador de verdade. Para só ler uma página pública, `ler_pagina`
+    é mais barato; use o browser quando precisar clicar, preencher, ou quando a página só
+    monta com JavaScript. Chame primeiro
+    `{"acao":"navegar","argumentos":{"url":"https://..."}}`; esta chamada já devolve a
+    árvore da página com refs. Só depois planeje o clique com uma ref observada:
+    `{"acao":"clicar","argumentos":{"ref":"..."},"consequencia":"nenhuma"}`. Nunca invente
+    refs nem planeje clique antes de receber a navegação. Se o pedido inclui navegar e
+    depois clicar, a navegação é um passo intermediário: continue no mesmo turno e na mesma
+    sessão até concluir o clique e conferir o destino. Quando o texto pedido não existe
+    literalmente mas há um único link semanticamente equivalente, use a ref observada;
+    pergunte apenas se houver mais de um alvo plausível. Leia o estado que volta depois de
+    cada ação; se nada mudou, procure o bloqueio em vez de repetir. O `ref` (`e8`, `e23`) é
+    o identificador que o Sentury dá ao elemento para você mirar a ação: não é dado da
+    página, e não vai para a resposta como código, id ou link. Se o que foi pedido não
+    aparece na leitura, ele costuma estar a um clique (dentro do item, do card, do detalhe)
+    ou só na tela: abra o item, ou peça `imagens`, antes de responder com o que tem. Em
+    `clicar` e `digitar`, declare `consequencia`: `nenhuma` para filtro, menu, busca ou
+    paginação; `comunicar` para enviar, publicar ou se candidatar. Digitar dado pessoal não
+    pede declaração: o resultado traz um `aviso` quando o texto parece chave, CPF ou cartão,
+    e você conta à pessoa em uma frase. Sem declarar, a pessoa é perguntada. `digitar` sem
+    `ref` escreve no campo que já tem o foco (o que você acabou de clicar); `enviar: true`
+    aperta Enter depois, que é como uma busca sai:
+    `{"acao":"digitar","argumentos":{"ref":"e12","texto":"chatgpt",
+    "enviar":true},"consequencia":"nenhuma"}`. `imagens` tira um print: só quando o texto
+    não bastar. Depois de ler a página, prefira um fluxo a uma ação por vez: cada volta ao
+    modelo custa segundos, e a pessoa vê a página parada. `roteiro` (`argumentos: {passos:
+    [...]}`) roda a sequência de uma vez: cada passo é uma ação (`navegar`, `clicar`,
+    `digitar`, `rolar`) ou um controle (`esperar` e `conferir` com `texto`, `ver` ou
+    `imagens` para o print, `pensar` ou `snapshot` para ler a página e voltar a decidir).
+    Ponha `conferir` depois do que precisa dar certo: se falhar, o roteiro para ali e
+    devolve a página. Numa página que o roteiro ainda não leu (logo depois de um `navegar`),
+    mire `clicar` e `digitar` por `nome`, o texto do elemento, no lugar do `ref`. Uma busca,
+    por exemplo: `{"acao":"roteiro","argumentos":{"passos":[{"acao":"digitar",
+    "argumentos":{"ref":"e3","texto":"chatgpt","enviar":true},"consequencia":"nenhuma"},
+    {"acao":"esperar","argumentos":{"texto":"Resultados"}},{"acao":"pensar"}]}}`. A sessão
+    continua disponível nos próximos turnos da conversa. Use `encerrar` somente quando a
+    pessoa pedir para liberar a sessão; concluir uma resposta não a encerra.
+  quando_usar:
+    - abrir site clicar botão preencher formulário página navegador
+    - página dinâmica que não lê com ler_pagina
+  texto_de_terceiros: true
+  determinista: false
+  parametros:
+    type: object
+    properties:
+      acao:
+        type: string
+        enum:
+          - snapshot
+          - console
+          - imagens
+          - clicar
+          - digitar
+          - navegar
+          - rolar
+          - roteiro
+          - encerrar
+      argumentos:
+        type: object
+        properties:
+          url: {type: string}
+          ref: {type: string}
+          nome:
+            type: string
+            description: Em `clicar`/`digitar` sem `ref`, o texto do elemento (como na leitura).
+          texto: {type: string}
+          enviar:
+            type: boolean
+            description: Em `digitar`, aperta Enter depois do texto (uma busca sai assim).
+          passos: {type: array}
+          completo: {type: boolean}
+      consequencia:
+        type: string
+        enum:
+          - nenhuma
+          - comunicar
+          - transmitir_dado
+          - apagar
+          - financeira
+          - conta
+          - captcha
+          - contornar_seguranca
+        description: >-
+          Em clicar/digitar: o que a acao causa fora da pagina. Sem declarar, pergunta.
+      provider:
+        type: string
+    additionalProperties: true
+    required:
+      - acao
+buscar_web:
+  nucleo: true
+  destino_residente: proibida
+  categoria: conhecimento
+  efeito: leitura
+  traz_dado: true
+  descricao: >-
+    Busca na web e lê as melhores fontes.
+  orientacao: >-
+    Considere quando a resposta depende de algo que muda com o tempo (preço, versão,
+    notícia, mercado, quem faz o quê) e não está na conversa: de memória sai o que o treino
+    sabia, como se fosse atual. `profundidade: rapida` localiza e lê trechos; `profunda`
+    busca 15 resultados e lê até 8 páginas, para comparação ou várias fontes. Cite cada
+    achado como link markdown com a URL que a ferramenta devolveu; URL que ela não devolveu
+    ninguém consegue conferir.
+  quando_usar:
+    - >-
+      noticia mercado concorrente referencia externa documentacao pesquisa recente internet
+      web online google procure busque na rede site artigo tendencia pesquisa profunda comparar
+      fontes
+  texto_de_terceiros: true
+  determinista: false
+  prazo_s: 90.0
+  parametros:
+    type: object
+    properties:
+      consulta:
+        type: string
+      profundidade:
+        type: string
+        description: >-
+          `rapida` retorna trechos; `profunda` busca mais fontes e lê as melhores páginas.
+        enum:
+          - rapida
+          - profunda
+        default: rapida
+      limite:
+        type: integer
+        description: Quantidade de resultados da busca.
+        minimum: 1
+        maximum: 20
+      paginas:
+        type: integer
+        minimum: 0
+        maximum: 10
+        description: Quantidade de páginas a ler; 0 retorna apenas trechos.
+    additionalProperties: true
+    required:
+      - consulta
+ler_pagina:
+  nucleo: true
+  destino_residente: proibida
+  categoria: conhecimento
+  efeito: leitura
+  traz_dado: true
+  descricao: >-
+    Lê o texto de uma página pública pela URL, uma parte por vez.
+  orientacao: >-
+    A primeira parte traz `links` numerados (`[3] texto -> url`); para seguir um, chame com
+    a URL dele. `parte: 2` continua de onde parou, e `procurar` traz só os trechos com um
+    termo, o que costuma resolver em uma chamada. Endereço interno é recusado.
+  quando_usar:
+    - abra o link leia a pagina o que diz esse site
+  texto_de_terceiros: true
+  determinista: false
+  parametros:
+    type: object
+    properties:
+      url:
+        type: string
+        format: uri
+      parte:
+        type: integer
+        minimum: 1
+        description: Qual parte do texto ler. A resposta diz quantas existem.
+      procurar:
+        type: string
+        description: Termo para trazer só os trechos que o citam.
+    additionalProperties: true
+    required:
+      - url
+executar_comando:
+  saida_terminal: true
+  destino_residente: caixa
+  operacao_caixa: comando
+  categoria: conhecimento
+  efeito: escrita
+  traz_dado: true
+  # A saida de um `cat` ou de um script e texto de fora como qualquer pagina.
+  texto_de_terceiros: true
+  # Sempre na mesa: sem shell, o modelo improvisa com executar_python.
+  nucleo: true
+  # A descricao ganha o shell ativo e a busca de texto da maquina (shell.dica_do_shell).
+  mostra_shell: true
+  descricao: >-
+    Roda uma linha de shell (bash ou PowerShell) com pipe e &&. Leitura roda direto; o que
+    altera pede aprovação.
+  orientacao: >-
+    Cada trecho passa pela política: se algum altera, redireciona (`>`) ou usa `$(...)`, a
+    pessoa aprova o conteúdo. Para contar ou achar texto em arquivo grande, a busca do shell
+    responde em uma chamada. Se passar do tempo, o comando segue em segundo plano e volta
+    `em_segundo_plano: true` com um `id`: ele não falhou; siga com outra coisa e depois
+    chame `processos` com `acao: ver` e o `id`.
+  quando_usar:
+    - git status diff branch teste rodar comando terminal shell
+    - ultimo commit git log versao instalada rodar comando no terminal
+  determinista: false
+  prazo_s: 90.0
+  parametros:
+    type: object
+    properties:
+      comando:
+        type: string
+      diretorio:
+        type: string
+      timeout:
+        type: number
+        minimum: 1
+      shell:
+        type: string
+        enum: [bash, powershell]
+        description: >-
+          Em qual shell o comando roda. Sem ele, comando com cmdlet do PowerShell roda
+          no PowerShell e o resto no shell padrao da maquina.
+    additionalProperties: true
+    required:
+      - comando
+executar_script:
+  saida_terminal: true
+  destino_residente: caixa
+  operacao_caixa: script
+  categoria: execucao
+  efeito: escrita
+  traz_dado: true
+  # A saida de um `cat` ou de um script e texto de fora como qualquer pagina.
+  texto_de_terceiros: true
+  descricao: >-
+    Roda um script de várias linhas (PowerShell, bash, Python, Node) ou um auxiliar de
+    skill, com aprovação do conteúdo.
+  orientacao: >-
+    Uma linha de shell, mesmo com pipe, vai no `executar_comando`. Para auxiliar de skill,
+    passe `arquivo` com o caminho dentro de `scripts/`, sem copiar para `conteudo`. Sem
+    `linguagem`, roda em bash quando há bash e em PowerShell quando não há. A pessoa aprova
+    o conteúdo, e mudar uma linha pede aprovação de novo. Código de saída diferente de zero
+    volta como fato (`codigo`).
+  manual: >-
+    No bash do Windows, caminho vai como `/c/Users/...` e aspas simples protegem barra
+    invertida. Para `arquivo`, a linguagem sai da extensão. Não use `exec(open(...))` para
+    rodar auxiliar de skill: passe `arquivo`.
+  quando_usar:
+    - >-
+      script powershell bash rodar varias linhas pipe redirecionar automatizar criar script
+      e executar terminal skill scripts auxiliar
+  determinista: false
+  prazo_s: 150.0
+  parametros:
+    type: object
+    properties:
+      conteudo:
+        type: string
+      linguagem:
+        type: string
+      arquivo:
+        type: string
+      argumentos:
+        type: array
+        items:
+          type: string
+      diretorio:
+        type: string
+      timeout:
+        type: number
+        minimum: 1
+    additionalProperties: true
+buscar_conhecimento:
+  titulo: Procurando na base de conhecimento
+  destino_residente: proibida
+  categoria: conhecimento
+  efeito: leitura
+  descricao: >-
+    O manual do Sentury: como usar cada ferramenta e cada skill, os conceitos da base e
+    como pedidos parecidos foram resolvidos aqui.
+  orientacao: >-
+    consulta o manual: como usar uma ferramenta (parâmetros, quando usar), o que uma skill
+    faz e quais ferramentas ela usa, a base de conceitos (o que o Sentury faz e não faz) e
+    os pedidos parecidos que já deram certo nesta instalação, com as ferramentas em ordem.
+    Cada achado traz `fonte` e `relacionados`: a skill que usa a ferramenta, a ferramenta
+    que a skill usa. Consulte quando uma ferramenta falhar e você não souber por quê, quando
+    não souber qual ferramenta ou skill serve, ou quando o pedido parecer com um já feito e
+    reaproveitar o caminho poupar voltas. Se nada vier, diga que não tem a informação.
+  quando_usar:
+    - >-
+      o que é defina significa conceito metodologia capacidade o que voce faz
+    - como usar como faco nao sei qual ferramenta manual ajuda skill serve para que
+  parametros:
+    type: object
+    properties:
+      consulta:
+        type: string
+    additionalProperties: true
+    required:
+      - consulta
+consultar_experiencia:
+  destino_residente: proibida
+  categoria: conhecimento
+  efeito: leitura
+  # Fora da mesa do modelo: o que resolveu casos parecidos vem pelo manual
+  # (buscar_conhecimento). O despacho fica.
+  exposta_ao_modelo: false
+  descricao: >-
+    Consulta como análises parecidas foram resolvidas antes (quais ferramentas deram certo).
+  orientacao: >-
+    como análises parecidas foram resolvidas antes nesta base (quais ferramentas deram certo).
+    Use quando o pedido for de um tipo que já apareceu e você quiser reaproveitar o caminho,
+    em vez de montar do zero. Não traz dado, traz o procedimento.
+  quando_usar:
+    - >-
+      como foi resolvido antes procedimento experiência caso parecido estratégia anterior
+  parametros:
+    type: object
+    properties:
+      intent:
+        type: string
+      consulta:
+        type: string
+    additionalProperties: true
+buscar_conversas:
+  destino_residente: proibida
+  categoria: conhecimento
+  efeito: leitura
+  descricao: >-
+    Procura o que já foi conversado com este usuário em sessões anteriores.
+  orientacao: >-
+    o que já foi conversado com este usuário em sessões anteriores. Use quando ele se referir
+    a algo de antes ("o que a gente concluiu sobre aquele recorte", "como ficou aquela análise")
+    em vez de responder que não lembra. Traz o que foi dito, não dado novo.
+  quando_usar:
+    - lembra conversa anterior outra sessão histórico já falamos
+    - do que a gente falou o que falamos semana passada ontem aquela conversa
+  parametros:
+    type: object
+    properties:
+      consulta:
+        type: string
+      limite:
+        type: integer
+        minimum: 1
+    additionalProperties: true
+    required:
+      - consulta
+# Nucleo: sempre na chamada, fora do corte por relevancia. E o caminho de
+# volta quando a ferramenta certa nao foi oferecida.
+search_tools:
+  destino_residente: hq
+  categoria: conhecimento
+  efeito: leitura
+  descricao: >-
+    Carrega pelo nome exato do mapa uma ferramenta que não veio nesta chamada.
+  orientacao: >-
+    `nomes` deixa a ferramenta pronta para a próxima chamada; `categoria` e `offset` listam
+    o catálogo em páginas. `consulta` é busca por palavra e pode falhar em outro idioma ou
+    com sinônimo; nesse caso, escolha pelo mapa. Carregar não executa nem autoriza.
+  quando_usar:
+    - >-
+      nao tenho ferramenta nao consigo procurar capacidade existe alguma ferramenta buscar
+      tool
+  nucleo: true
+  # O residente procura aqui o nome exato antes de `pedir_ferramenta`.
+  todo_residente: true
+  parametros:
+    type: object
+    properties:
+      consulta:
+        type: string
+        description: Busca lexical opcional; use nomes para carregar uma capacidade vista no mapa.
+      nomes:
+        type: array
+        items:
+          type: string
+        maxItems: 8
+        description: Nomes exatos das ferramentas do mapa cujos schemas devem ser carregados.
+      categoria:
+        type: string
+        description: Categoria exata do mapa a listar, sem carregar todas as ferramentas.
+      offset:
+        type: integer
+        minimum: 0
+        description: Próxima posição da listagem paginada, começando por zero.
+    additionalProperties: true
+usar_ferramenta:
+  destino_residente: hq
+  categoria: conhecimento
+  efeito: leitura
+  tipo_na_tela: execute
+  intencao: executar
+  ponte: true
+  descricao: >-
+    Chama pelo nome exato do mapa uma ferramenta que não veio nesta chamada, com os argumentos dela.
+  orientacao: >-
+    Considere quando o mapa mostra a ferramenta certa e você já sabe os argumentos: a chamada
+    sai agora, sem esperar outra volta. Em `nome` vai o nome exato do mapa; em `argumentos`, os
+    parâmetros dela. Se não conhece os parâmetros, carregue antes com `search_tools`. A chamada
+    passa pela mesma permissão e pelo mesmo cartão de aprovação que a ferramenta teria direto.
+  quando_usar:
+    - chamar ferramenta do mapa pelo nome usar capacidade
+  parametros:
+    type: object
+    properties:
+      nome:
+        type: string
+        description: Nome exato da ferramenta no mapa.
+      argumentos:
+        type: object
+        description: Os argumentos da ferramenta, no formato dela.
+    additionalProperties: false
+    required:
+      - nome
+subagentes:
+  destino_residente: proibida
+  categoria: conhecimento
+  efeito: leitura
+  intencao: consultar
+  tipo_na_tela: read
+  titulo: Consultando subagentes
+  descricao: >-
+    Pede pareceres independentes sobre a evidência que o turno já levantou, cada um por um
+    ângulo, e devolve os pareceres para você juntar.
+  orientacao: >-
+    Considere quando a decisão ganha com olhares separados (evidência, risco, prioridade) ou
+    quando a pessoa pede subagentes. Rode antes as ferramentas que trazem o dado: o subagente
+    lê só os resultados verificados da sessão, não tem ferramenta e não conversa com a pessoa.
+    Em `papeis`, até três ângulos com nome livre ("risco jurídico", "custo"); sem eles vão os
+    três padrão. Os pareceres podem divergir e trazer hipóteses: junte-os com os dados na sua
+    resposta, dizendo onde concordam e onde não.
+  quando_usar:
+    - subagentes segunda opiniao pareceres angulos revisar criticar analise independente
+  determinista: false
+  parametros:
+    type: object
+    properties:
+      pedido:
+        type: string
+        description: O que os subagentes devem analisar, com o objetivo.
+      papeis:
+        type: array
+        maxItems: 3
+        items:
+          type: string
+        description: Ângulos de análise, um por subagente.
+      quantos:
+        type: integer
+        minimum: 1
+        maximum: 3
+        description: Quantos subagentes padrão, quando não há papéis nomeados.
+    additionalProperties: false
+    required:
+      - pedido
+perguntar_usuario:
+  destino_residente: hq
+  categoria: conhecimento
+  efeito: leitura
+  descricao: >-
+    Pergunta à pessoa e espera a resposta, quando a escolha dela muda o próximo passo.
+  orientacao: >-
+    Considere só quando a escolha não está no pedido e as ferramentas não descobrem. Até
+    quatro perguntas independentes em `questions`, com `options` e `multiSelect`; cada
+    pergunta já aceita resposta livre, então uma opção "Outro" sobra. Se falta um único dado
+    (link, caminho, nome), peça na resposta em texto.
+  quando_usar:
+    - ambiguo falta informacao qual deles prefere escolher entre opcoes
+  nucleo: true
+  todo_residente: true
+  parametros:
+    type: object
+    properties:
+      pergunta:
+        type: string
+        description: Formato de uma pergunta, mantido para chamadas antigas.
+      opcoes:
+        type: array
+        description: Respostas prontas para a pessoa clicar, quando as saidas sao poucas.
+        items:
+          type: string
+      intro:
+        type: string
+        maxLength: 300
+      questions:
+        type: array
+        minItems: 1
+        maxItems: 4
+        description: Decisões independentes que precisam da pessoa antes de continuar.
+        items:
+          type: object
+          properties:
+            header:
+              type: string
+              maxLength: 24
+            question:
+              type: string
+              minLength: 1
+              maxLength: 200
+            multiSelect:
+              type: boolean
+              default: false
+            options:
+              type: array
+              minItems: 2
+              maxItems: 5
+              items:
+                type: object
+                properties:
+                  label:
+                    type: string
+                    minLength: 1
+                    maxLength: 80
+                  description:
+                    type: string
+                    maxLength: 160
+                required: [label]
+                additionalProperties: false
+          required: [question, options]
+          additionalProperties: false
+    additionalProperties: true
+    anyOf:
+      - required: [questions]
+      - required: [pergunta]
+diagnosticos:
+  destino_residente: proibida
+  categoria: conhecimento
+  efeito: leitura
+  descricao: >-
+    Le os erros do arquivo sem rodar nada: sintaxe, import que nao existe, nome solto. Chame
+    depois de escrever ou editar codigo, antes de rodar teste — e o feedback mais barato do
+    ciclo.
+  orientacao: >-
+    erros do arquivo sem executar nada: sintaxe, import inexistente, nome solto. Chame depois
+    de escrever ou editar código. A suíte leva minutos e o teste que falha raramente aponta
+    a linha; isto leva milissegundos e aponta.
+  quando_usar:
+    - >-
+      escrevi codigo esta certo erro de sintaxe compila quebrei algo conferir antes de rodar
+      lint
+  parametros:
+    type: object
+    properties:
+      arquivos:
+        type: array
+        items:
+          type: string
+      caminho:
+        type: string
+    additionalProperties: true
+historico_do_arquivo:
+  destino_residente: proibida
+  categoria: conhecimento
+  efeito: leitura
+  descricao: >-
+    Como este arquivo estava antes das ultimas edicoes: a lista de versoes e o diff entre
+    duas delas (ou entre uma versao e o arquivo como esta agora). Use quando uma alteracao
+    quebrou algo e voce precisa ver o que mudou.
+  orientacao: >-
+    as versões do arquivo desde que você começou a mexer nele, e o diff entre duas. Sem `versao`,
+    lista; com `versao=2`, mostra o que mudou de lá até agora. A versão 1 é o arquivo como
+    você o encontrou.
+  quando_usar:
+    - >-
+      como estava antes o que eu mudei neste arquivo desfazer voltar versao anterior diff
+      do que editei
+  parametros:
+    type: object
+    properties:
+      caminho:
+        type: string
+      versao:
+        type: integer
+      comparar_com:
+        type: integer
+    additionalProperties: true
+    required:
+      - caminho
+restaurar_versao:
+  destino_residente: proibida
+  categoria: execucao
+  efeito: escrita
+  descricao: >-
+    Escreve uma versao antiga do arquivo de volta. Veja com historico_do_arquivo primeiro.
+    Pede autorizacao como qualquer escrita.
+  orientacao: >-
+    escreve a versão antiga de volta. Pede autorização, como qualquer escrita. Olhe o diff
+    antes: voltar o arquivo inteiro também desfaz o que deu certo.
+  quando_usar:
+    - volta como estava desfaz minha edicao restaura a versao
+  parametros:
+    type: object
+    properties:
+      caminho:
+        type: string
+      versao:
+        type: integer
+    additionalProperties: true
+    required:
+      - caminho
+      - versao
+codigo:
+  nucleo: true
+  destino_residente: proibida
+  categoria: conhecimento
+  efeito: leitura
+  acoes:
+    mapa: leitura
+    definicao: leitura
+    referencias: leitura
+    chamadas: leitura
+  tipo_na_tela: read
+  intencao: consultar
+  descricao: >-
+    Lê a estrutura de código Python: o que um arquivo tem, onde algo é definido, quem cita
+    um nome e quem chama uma função.
+  orientacao: >-
+    `mapa` (`caminho`) lista funções e classes sem ler o arquivo inteiro. `definicao` e
+    `referencias` (`nome`) dizem onde algo está e quem o cita. `chamadas` (`nome`) devolve a
+    cadeia: `sentido: chamado_por` mostra quem depende, o que ajuda a decidir se é seguro
+    mexer; `chama` mostra o que a função aciona. `pasta` muda onde procurar.
+  quando_usar:
+    - estrutura do arquivo o que tem nele resumo do modulo arquivo grande
+    - onde esta definida achar funcao classe implementacao
+    - quem usa quem chama impacto dependencia antes de mudar referencias
+    - >-
+      cadeia de chamadas impacto em profundidade e seguro mexer o que depende disso quem chama
+      quem
+  parametros:
+    type: object
+    properties:
+      acao:
+        type: string
+        enum: [mapa, definicao, referencias, chamadas]
+      caminho:
+        type: string
+        description: Arquivo Python a mapear (acao mapa).
+      nome:
+        type: string
+        description: Função, classe ou nome a procurar (acoes definicao, referencias e chamadas).
+      pasta:
+        type: string
+        description: Pasta onde procurar. Sem ela, a pasta de trabalho.
+      sentido:
+        type: string
+        enum: [chamado_por, chama]
+        description: Na acao chamadas, quem chama a função ou o que ela chama.
+      profundidade:
+        type: integer
+        minimum: 1
+        description: Na acao chamadas, quantos níveis seguir.
+    additionalProperties: true
+    required:
+      - acao
+percorrer_chamadas:
+  destino_residente: proibida
+  categoria: conhecimento
+  efeito: leitura
+  exposta_ao_modelo: false
+  descricao: >-
+    A cadeia de chamadas a partir de uma funcao: o que ela chama (`chama`) ou quem a chama
+    (`chamado_por`). Use antes de alterar algo muito usado — `quem_usa` devolve mencoes, isto
+    devolve a cadeia.
+  orientacao: >-
+    a cadeia a partir de uma função. `chamado_por` (padrão) responde "é seguro mexer aqui?";
+    `chama` mostra o que ela aciona. Use antes de alterar algo muito usado: `quem_usa` devolve
+    menções soltas, isto devolve a cadeia — e é acoplamento a quatrocentas linhas de distância
+    que faz a alteração quebrar longe do lugar mexido.
+  quando_usar:
+    - >-
+      cadeia de chamadas impacto em profundidade e seguro mexer o que depende disso quem chama
+      quem
+  parametros:
+    type: object
+    properties:
+      pasta:
+        type: string
+        description: Pasta onde procurar. Sem ela, a pasta de trabalho.
+      nome:
+        type: string
+      sentido:
+        type: string
+      profundidade:
+        type: integer
+        minimum: 1
+    additionalProperties: true
+    required:
+      - nome
+criar_workflow:
+  funcoes_disponiveis: [workflow]
+  destino_residente: hq
+  categoria: execucao
+  efeito: escrita
+  descricao: >-
+    Cria um workflow persistente. Pode ser manual ou, quando houver gatilho, recorrente; agendamento
+    exige aprovacao.
+  orientacao: >-
+    salva um processo persistente de varias etapas. `gatilho` e opcional: use cron apenas
+    quando a ocasiao pede recorrencia; sem gatilho, o workflow comeca manualmente depois da
+    aprovacao. Nunca invente horario.
+  quando_usar:
+    - >-
+    - todo dia toda semana toda manha rotina recorrente me manda sempre
+      workflow processo persistente varias etapas acompanhar ate fechar toda semana toda segunda
+      rotina automatica recorrente
+  parametros:
+    type: object
+    properties:
+      nome:
+        type: string
+      porque:
+        type: string
+      gatilho:
+        type: string
+      passos:
+        type: array
+        items:
+          type: string
+    additionalProperties: true
+    required:
+      - nome
+      - passos
+ver_workflow:
+  destino_residente: hq
+  categoria: conhecimento
+  efeito: leitura
+  descricao: >-
+    Mostra um workflow: seus passos, estado, gatilho opcional e como terminaram as ultimas
+    execucoes.
+  orientacao: >-
+    mostra a receita, o estado e as ultimas execucoes do processo persistente.
+  quando_usar:
+    - ver workflow processo persistente execucoes como esta andando
+  parametros:
+    type: object
+    properties:
+      nome:
+        type: string
+    additionalProperties: true
+criar_plano:
+  funcoes_disponiveis: [plano, workflow]
+  destino_residente: hq
+  categoria: execucao
+  efeito: escrita
+  descricao: >-
+    Escreve o plano de um trabalho de varias etapas em disco: contexto (por que) e checklist
+    (o que). Use antes de comecar algo que nao termina num turno.
+  orientacao: >-
+    escreve o checklist e o porquê. Use antes de começar algo de várias etapas.
+  quando_usar:
+    - >-
+      plano varias etapas trabalho longo projeto dividir tarefas organizar antes de comecar
+  parametros:
+    type: object
+    properties:
+      nome:
+        type: string
+      titulo:
+        type: string
+      contexto:
+        type: string
+      tarefas:
+        type: array
+        items:
+          type: string
+    additionalProperties: true
+    required:
+      - nome
+      - tarefas
+ver_plano:
+  destino_residente: hq
+  categoria: conhecimento
+  efeito: leitura
+  descricao: >-
+    Le um plano e diz qual e a proxima tarefa, o que ja foi feito e por que o trabalho existe.
+    Use ao retomar algo.
+  orientacao: >-
+    diz qual é a próxima tarefa, o que já foi feito e contra o que o trabalho decide. Sem
+    argumento, lista os planos. É a primeira coisa a chamar quando pedirem para retomar.
+  quando_usar:
+    - >-
+      onde paramos retomar continuar o que falta qual a proxima plano status andamento
+  parametros:
+    type: object
+    properties:
+      nome:
+        type: string
+    additionalProperties: true
+    required:
+      - nome
+status_da_tarefa:
+  destino_residente: hq
+  categoria: execucao
+  efeito: leitura
+  interrompivel: true
+  descricao: >-
+    Marca uma tarefa do plano como fazendo/feito/falhou/pulado. Chame assim que terminar uma
+    — um plano que ninguem marca vira um documento desatualizado.
+  orientacao: >-
+    marca fazendo/feito/falhou/pulado. Chame assim que terminar uma etapa: um plano que ninguém
+    marca vira documento desatualizado, e aí ele atrapalha mais do que ajuda.
+  quando_usar:
+    - terminei essa etapa marcar concluido feito falhou pular tarefa
+  parametros:
+    type: object
+    properties:
+      plano:
+        type: string
+      tarefa:
+        type: string
+      estado:
+        type: string
+      nota:
+        type: string
+    additionalProperties: true
+    required:
+      - plano
+      - tarefa
+missao:
+  destino_residente: hq
+  categoria: execucao
+  efeito: escrita
+  acoes:
+    registrar: escrita
+    abrir: escrita
+    fechar: escrita
+    ver: leitura
+  descricao: >-
+    Lote de unidades de trabalho que sobrevive entre turnos: registra, abre antes de agir,
+    fecha com evidencia e diz o que falta.
+  orientacao: >-
+    Considere para trabalho repetido sobre vários alvos que não cabe num turno (5 vagas x 4
+    fontes = 20 unidades). `registrar` as `unidades` (`alvo`, `item`) no começo; `abrir`
+    antes de agir em cada uma, para ela voltar como pendente se o turno cair; `fechar` com
+    `estado` e `evidencia`, porque `feito` sem evidência é recusado. Ao retomar, `ver` diz o
+    que falta, na ordem.
+  manual: >-
+    Estados de `fechar`: `feito`, `descartada` (o alvo não serve), `falhou`,
+    `precisa_usuario`. Registrar de novo a mesma unidade não duplica. Unidade que falha três
+    vezes vai para revisão em vez de ser tentada de novo.
+  quando_usar:
+    - >-
+      varios alvos cada um lote vagas fontes investigar um por um retomar de onde parou
+      dossie missao unidades
+  determinista: false
+  parametros:
+    type: object
+    properties:
+      acao:
+        type: string
+        enum:
+          - registrar
+          - abrir
+          - fechar
+          - ver
+      missao:
+        type: string
+        description: Nome do lote. Em `ver`, sem nome, lista as missoes.
+      unidades:
+        type: array
+        items:
+          type: object
+          properties:
+            alvo:
+              type: string
+            item:
+              type: string
+        description: Em `registrar`.
+      alvo:
+        type: string
+      item:
+        type: string
+      estado:
+        type: string
+        enum:
+          - feito
+          - descartada
+          - falhou
+          - precisa_usuario
+          - revisar
+      evidencia:
+        description: Em `fechar`. Obrigatoria quando `estado` e `feito`.
+      confianca:
+        type: number
+      nota:
+        type: string
+    additionalProperties: true
+    required:
+      - acao
+goal:
+  funcoes_disponiveis: [goal]
+  destino_residente: hq
+  categoria: execucao
+  efeito: escrita
+  acoes:
+    propor: escrita
+    marco: escrita
+    cumprido: escrita
+    ver: leitura
+  descricao: >-
+    Objetivo de longo prazo da conversa: o Sentury segue turno após turno até um critério
+    verificável ser cumprido.
+  orientacao: >-
+    Considere `propor` quando @goal está ligado ou o pedido não cabe em um turno ("até
+    zerar", "todas as vagas"), com `objetivo`, `criterio` verificável e `marcos` opcionais;
+    a pessoa aprova na tela. Durante o goal, `marco` com `evidencia` quando um marco cai, e
+    `cumprido` com `evidencia` só quando o critério inteiro foi atingido e há o que prove.
+    `ver` mostra o goal da conversa.
+  manual: >-
+    Proposto não roda até a pessoa aprovar. Pedido que cabe num turno e não ativou @goal não
+    vira goal. Depois de `cumprido`, a pessoa confirma; se ela disser que não, o goal volta
+    com a nota dela.
+  quando_usar:
+    - >-
+      ate zerar ate terminar ate conseguir objetivo longo continuar sozinho goal meta jogar
+      jogo inteiro todas as vagas nao parar ate
+  determinista: false
+  parametros:
+    type: object
+    properties:
+      acao:
+        type: string
+        enum:
+          - propor
+          - marco
+          - cumprido
+          - ver
+      objetivo:
+        type: string
+        description: Em `propor`. O que perseguir, numa frase.
+      criterio:
+        type: string
+        description: Em `propor`. Como saber que terminou, de forma verificavel.
+      marcos:
+        type: array
+        items:
+          type: string
+        description: Em `propor`. Etapas intermediarias, na ordem.
+      limite_turnos:
+        type: integer
+        description: Em `propor`. Teto de turnos automaticos (padrao 60).
+      limite_horas:
+        type: number
+        description: Em `propor`. Teto de horas (padrao 8).
+      titulo:
+        type: string
+        description: Em `marco`. O marco cumprido; um que nao estava na lista entra no fim.
+      evidencia:
+        description: Em `marco` e `cumprido`. O que prova (print, URL, trecho). Obrigatoria.
+    additionalProperties: true
+    required:
+      - acao
+criar_agente:
+  destino_residente: proibida
+  categoria: execucao
+  efeito: escrita
+  intencao: alterar
+  tipo_na_tela: edit
+  descricao: >-
+    Cria um agente residente: um colega persistente com papel, objetivo e ferramentas
+    próprias, que atende o Sentury e canais como o Telegram.
+  orientacao: >-
+    Considere quando a pessoa pede um especialista que continue existindo, ou quando o mesmo
+    trabalho volta sempre; pedido que cabe numa conversa não vira agente. Proponha o
+    manifesto inteiro: `nome`, `papel`, `objetivo` verificável e só as `ferramentas` que o
+    trabalho pede, porque ele não usa nenhuma fora da lista. O `nome` é o de um colega de
+    verdade, curto e próprio (`alfa`, `atlas`, `nina`, `tito`), escolhido por você quando a
+    pessoa não der um. Função ou cargo não é nome: "data-analyst", "analista" ou "fazedor de
+    relatório" repetem o `papel` e se confundem quando houver dois do mesmo tipo. Se a pessoa
+    deu um nome, é esse. A pessoa vê o manifesto no cartão antes de aprovar. Quando o
+    trabalho pede papéis diferentes (um pesquisa, outro escreve), considere propor a equipe
+    numa chamada só: o primeiro residente nos campos de cima e os outros em `colegas`, cada
+    um com o manifesto inteiro. A pessoa vê a equipe num cartão só e escolhe quem entra; uma
+    chamada por residente para o turno no primeiro cartão, e os outros esperam a aprovação dele.
+    Se uma skill instalada descreve o trabalho dele, ponha em `skills`: ela entra carregada em
+    toda tarefa, e ele não carrega skill sozinho. Num residente que trabalha em equipe, três
+    coisas fazem diferença: as `instrucoes` dizem o que não é com ele e para quem vai, a
+    `personalidade` diz o que ele defende quando há escolha difícil (velocidade ou segurança,
+    cliente ou custo), para os colegas discordarem por motivo real, e as `ferramentas` começam
+    pelo mínimo. Para montar a equipe inteira, a skill `montar-equipe` traz o roteiro completo;
+    considere abri-la com `executar_skill` antes de propor.
+  manual: >-
+    Quando a pessoa diz quais ferramentas ele usa ("só precisa ler arquivo"), a lista é
+    exatamente essa. A `familia` sai do papel e dá o objeto-símbolo da coruja. A
+    `personalidade` em duas ou três frases dá a ele uma voz própria na Mesa e no chat: o jeito
+    de falar, uma convicção ou mania do ofício e como reage quando discordam dele. Considere
+    fazê-la diferente da dos colegas que já existem, para a pessoa reconhecer quem fala.
+    `orcamento` e `cerebro` só quando a pessoa falar deles; sem eles valem US$ 1 e 60 turnos
+    por dia e o Router do RobinBandit.
+  quando_usar:
+    - >-
+      criar agente especialista residente persistente colega equipe agente que cuide acompanhe
+      monitore sempre infraestrutura vps logs
+  determinista: false
+  parametros:
+    type: object
+    properties:
+      colegas:
+        type: array
+        maxItems: 7
+        description: >-
+          Os outros residentes da mesma equipe, cada um com o manifesto inteiro, nos mesmos
+          campos do primeiro. Uma chamada leva a equipe toda para um cartão só.
+        items:
+          type: object
+          properties: &campos_do_residente
+            nome:
+              type: string
+              description: Nome próprio de colega, não a função; minusculas, numeros e hifen, comecando por letra (ex.:atlas).
+            papel:
+              type: string
+              description: O que ele e, numa linha (ex. "agente de infraestrutura da VPS").
+            objetivo:
+              type: string
+              description: O que ele persegue, de forma verificavel.
+            ferramentas:
+              type: array
+              items:
+                type: string
+              description: Nomes das ferramentas que ele pode usar. Nada alem disto.
+            skills:
+              type: array
+              maxItems: 6
+              items:
+                type: string
+              description: Nomes de skills instaladas que o trabalho dele pede; entram carregadas em toda tarefa.
+            personalidade:
+              type: string
+              description: >-
+                Duas ou três frases, até 400 caracteres: jeito de falar, uma convicção do ofício e como
+                reage a discordância.
+            rede:
+              type: string
+              enum: [nenhuma, internet]
+              default: nenhuma
+              description: Internet libera saída pública pelo proxy da caixa; omitir mantém o residente sem rede.
+            instrucoes:
+              type: string
+              description: Regras de trabalho dele, ditas pela pessoa.
+            canais:
+              type: array
+              items:
+                type: string
+                enum:
+                  - telegram
+            orcamento:
+              type: object
+              properties:
+                usd_por_dia:
+                  type: number
+                turnos_por_dia:
+                  type: integer
+            familia:
+              type: string
+              enum: [infraestrutura, pesquisa, atendimento, financas, codigo, dados, seguranca, conteudo, geral]
+              description: O papel que mais se parece com o dele. Define a plumagem e os acessorios iniciais.
+            cerebro:
+              type: object
+              description: Provedor e modelo fixos do RobinBandit. Omitir usa o Router.
+              properties:
+                provedor:
+                  type: string
+                modelo:
+                  type: string
+                se_cair:
+                  type: string
+                  enum: [parar, robinbandit]
+                esforco:
+                  type: string
+                  enum: [low, medium, high, xhigh]
+                  description: Esforço de raciocínio do turno dele. Omitir usa o padrão do provedor.
+          additionalProperties: false
+          required: [nome, papel, objetivo, ferramentas]
+      <<: *campos_do_residente
+    additionalProperties: false
+    required:
+      - nome
+      - papel
+      - objetivo
+      - ferramentas
+pedir_ao_agente:
+  destino_residente: hq
+  categoria: execucao
+  efeito: escrita
+  acoes:
+    listar: leitura
+    pedir: escrita
+    acompanhar: leitura
+  intencao: executar
+  tipo_na_tela: execute
+  # Residente pede a residente: vale para todos, sem precisar estar no manifesto.
+  todo_residente: true
+  descricao: >-
+    Fala com os agentes residentes: manda uma tarefa, acompanha o andamento ou lista quem existe.
+  orientacao: >-
+    `listar` mostra os agentes, o estado e o uso do dia. `pedir` põe a tarefa na fila do
+    `agente` e devolve o id: ele trabalha sozinho e a resposta fica na tarefa. `acompanhar`
+    com `tarefa_id` mostra o andamento; tarefa que espera a pessoa aparece como `esperando`,
+    com o motivo.
+  manual: >-
+    Entre residentes, o pedido leva o contexto que o colega precisa. Quando a tarefa tem partes
+    de colegas diferentes, peça a todos na mesma volta: eles trabalham ao mesmo tempo, e a tarefa
+    de quem pediu espera todos e volta com as respostas juntas. A cadeia vai até dois níveis e não
+    volta a quem já está nela.
+  quando_usar:
+    - >-
+      pedir ao agente mandar tarefa para o agente residente perguntar ao atlas status da tarefa
+      quais agentes existem
+  determinista: false
+  parametros:
+    type: object
+    properties:
+      acao:
+        type: string
+        enum:
+          - listar
+          - pedir
+          - acompanhar
+      agente:
+        type: string
+        description: Em `pedir`. O nome do agente.
+      pedido:
+        type: string
+        description: Em `pedir`. A tarefa, com o contexto que ele precisa para fazer sozinho.
+      tarefa_id:
+        type: string
+        description: Em `acompanhar`.
+    additionalProperties: false
+    required:
+      - acao
+memoria_do_agente:
+  destino_residente: hq
+  categoria: memoria
+  efeito: escrita
+  acoes:
+    anotar: escrita
+    buscar: leitura
+    ler: leitura
+  intencao: alterar
+  tipo_na_tela: edit
+  so_residente: true
+  descricao: A memoria propria do agente residente, que ele leva de uma tarefa para a outra.
+  orientacao: >-
+    `anotar` guarda uma nota curta que vale para as proximas tarefas: como a maquina esta
+    montada, o que costuma quebrar, o que a pessoa prefere. Toda nota fica guardada; no
+    comeco de cada tarefa entram as mais recentes e as parecidas com o pedido. Nota que diz
+    o mesmo que uma antiga troca a antiga, entao anotar o fato atualizado basta. `buscar`
+    acha as notas de um assunto que nao vieram no comeco da tarefa; `ler` mostra as mais
+    recentes.
+  parametros:
+    type: object
+    properties:
+      acao:
+        type: string
+        enum:
+          - anotar
+          - buscar
+          - ler
+      nota:
+        type: string
+        description: Em `anotar`. Uma linha.
+      termo:
+        type: string
+        description: Em `buscar`. O assunto, em poucas palavras.
+    additionalProperties: false
+    required:
+      - acao
+decisao:
+  destino_residente: hq
+  categoria: memoria
+  efeito: escrita
+  acoes:
+    anotar: escrita
+    buscar: leitura
+  intencao: alterar
+  tipo_na_tela: edit
+  # O Sentury e todo residente lembram e registram decisões da equipe.
+  todo_residente: true
+  descricao: >-
+    Registra uma decisão da equipe num arquivo próprio ou procura decisões antigas.
+  orientacao: >-
+    Considere `anotar` quando a pessoa ou a equipe decide algo que vai importar depois (quem
+    coordena, quem sai, uma regra nova, um corte): `titulo` curto e `decisao` com o que se
+    decidiu e o porquê. As decisões recentes já chegam no contexto de cada turno; `buscar`
+    com `termo` acha as antigas que não vieram. Decisão da Mesa se registra sozinha ao fechar.
+  quando_usar:
+    - >-
+      anote essa decisão registre que decidimos lembrar o que foi decidido quem é o
+      coordenador decisões anteriores
+  determinista: false
+  parametros:
+    type: object
+    properties:
+      acao:
+        type: string
+        enum:
+          - anotar
+          - buscar
+      titulo:
+        type: string
+        description: Em `anotar`. O tema, curto.
+      decisao:
+        type: string
+        description: Em `anotar`. O que se decidiu e o porquê.
+      participantes:
+        type: array
+        items:
+          type: string
+        description: Em `anotar`. Quem decidiu; omitir usa quem anota.
+      termo:
+        type: string
+        description: Em `buscar`. Do que trata a decisão procurada.
+    additionalProperties: false
+    required:
+      - acao
+pedir_ferramenta:
+  destino_residente: hq
+  categoria: execucao
+  efeito: escrita
+  intencao: alterar
+  tipo_na_tela: edit
+  so_residente: true
+  descricao: >-
+    Pede a pessoa uma ferramenta que o residente nao tem. Liberada, ela entra no manifesto e
+    vale ja nesta tarefa.
+  orientacao: >-
+    Considere quando o trabalho para por falta de uma ferramenta especifica. `ferramenta` e o
+    nome exato (`search_tools` mostra as que existem) e `motivo` diz, numa frase, para que ela
+    serve nesta tarefa: e o que a pessoa le para decidir. A tarefa espera a resposta. Negada,
+    siga sem ela e diga na resposta final o que ficou faltando.
+  parametros:
+    type: object
+    properties:
+      ferramenta:
+        type: string
+        description: O nome exato da ferramenta.
+      motivo:
+        type: string
+        description: Para que ela serve nesta tarefa, numa frase.
+    additionalProperties: false
+    required:
+      - ferramenta
+      - motivo
+falar_na_mesa:
+  destino_residente: hq
+  # Feita a fala, o turno acabou: devolver o resultado ao modelo só gerava um texto que a
+  # Mesa descarta, ao custo de uma chamada inteira.
+  encerra_o_turno: true
+  categoria: execucao
+  efeito: escrita
+  intencao: executar
+  tipo_na_tela: execute
+  so_residente: true
+  descricao: >-
+    A sua fala num assunto da Mesa, na sua vez: contribuir, passar a vez ou fechar com resumo.
+  orientacao: >-
+    Só existe na sua vez de um assunto da Mesa; o pedido do turno traz o assunto e a conversa.
+    `texto` é a sua fala, no seu jeito: reagir, discordar com o porquê, perguntar a um colega;
+    para falar com alguém, comece com @nome ou use `para`. Sem o que dizer agora, `passar: true`,
+    em vez de escrever que passou. Na vez de fechar, `resumo` diz o
+    que se concluiu e o que ficou pendente, e vai para a memória de quem falou. Cada residente
+    fala no máximo 3 vezes num assunto, mais uma quando é chamado com @. Trabalho que sai da
+    conversa vai para o colega com `pedir_ao_agente`.
+  parametros:
+    type: object
+    properties:
+      texto:
+        type: string
+        description: A contribuição, curta.
+      para:
+        type: string
+        description: O nome de quem você quer que responda.
+      passar:
+        type: boolean
+        description: Não tenho nada novo a acrescentar.
+      resumo:
+        type: string
+        description: Só na vez de fechar. O que se concluiu e o que ficou pendente.
+    additionalProperties: false
+abrir_assunto:
+  destino_residente: hq
+  categoria: execucao
+  efeito: escrita
+  intencao: executar
+  tipo_na_tela: execute
+  so_residente: true
+  descricao: >-
+    Abre um assunto na Mesa para os colegas discutirem juntos: planejar, analisar ou decidir.
+  orientacao: >-
+    Considere quando a questão pede mais de uma especialidade e uma conversa resolve melhor
+    que um pedido a um colega só. `titulo` é a pergunta ou o tema; `texto` é a sua primeira
+    fala, com o contexto. Chame com @nome quem precisa estar; os outros decidem se entram.
+    Pedido simples a um colega continua sendo `pedir_ao_agente`.
+  parametros:
+    type: object
+    properties:
+      titulo:
+        type: string
+        description: A pergunta ou o tema, numa linha.
+      texto:
+        type: string
+        description: A sua primeira fala, com o contexto.
+    additionalProperties: false
+    required:
+      - titulo
+computador:
+  funcoes_disponiveis: [computador]
+  destino_residente: proibida
+  categoria: execucao
+  efeito: escrita
+  acoes:
+    ver: leitura
+    elementos: leitura
+    janelas: leitura
+    programas: leitura
+    esperar: leitura
+    ler: leitura
+    clicar: escrita
+    clicar_duas: escrita
+    clicar_direito: escrita
+    mover: escrita
+    arrastar: escrita
+    rolar: escrita
+    digitar: escrita
+    tecla: escrita
+    invocar: escrita
+    definir_valor: escrita
+    focar: escrita
+    abrir: escrita
+    encerrar: escrita
+    pedir_a_pessoa: escrita
+  so_com_funcao: computador
+  # O ritmo natural pode demorar mais em textos longos.
+  prazo_s: 60.0
+  prazo_por_caractere_s: 0.25
+  # Onde o ritmo automatico do `digitar` usa o rapido: editores locais, que nao
+  # olham o intervalo entre teclas.
+  editores_rapidos: [notepad.exe, code.exe, codium, codium.exe, notepad++.exe, sublime_text.exe,
+                     gedit, kate, mousepad]
+  # Usar o computador é tarefa de muitos passos; a parada por falta de progresso segue valendo.
+  orcamento_do_turno: {max_loops: 40, max_tool_calls: 80, max_elapsed_ms: 900000, max_total_tokens: 1000000, max_consecutive_no_progress: 4}
+  # Títulos de janela e nomes de controle vêm de qualquer app, páginas abertas inclusive.
+  texto_de_terceiros: true
+  descricao: >-
+    Ve a tela e usa o mouse e o teclado de verdade: clicar, digitar, apertar tecla, rolar.
+  orientacao: >-
+    para se orientar (no comeco e sempre que a tela mudar muito: app novo, janela trocada),
+    peca `ver` com `marcar: true`: vem o print com um numero em cada elemento e a lista
+    junto. O print mostra o que a lista nao diz: onde o cursor ja pisca pronto para digitar,
+    o que esta carregando, o que abriu por cima. Para conferir um gesto pequeno, a lista em
+    texto basta: `elementos` lista os botoes, campos e links do que aparece na tela (menu
+    aberto primeiro, depois a janela em foco, a barra de tarefas e as janelas de fundo; cada
+    item diz de qual janela veio), cada um com um numero; mire com `elemento: n`. Campo de
+    texto: clique nele (ou veja no print que o cursor ja esta la) e use `digitar`.
+    `ritmo: automatico` acelera editores locais conhecidos e usa ritmo natural nos
+    demais programas. Use `ritmo: rapido` para textos longos em apps locais,
+    `ritmo: instantaneo` para colar um texto inteiro de uma vez num app local, ou
+    `ritmo: natural` quando precisar das pausas humanas (site). Todos enviam teclas
+    reais. Quando voce ja sabe a sequencia, mande os gestos juntos na mesma resposta, em ordem (clicar no
+    campo, `digitar`, `tecla enter`; abrir o app e `ver`): cada volta ao modelo custa
+    segundos. Se um gesto falhar ou nao fizer efeito, os seguintes nao rodam. `invocar`
+    (aperta botao, marca caixa, escolhe item, abre lista)
+    agem direto no controle, sem mexer no mouse da pessoa nem trazer a janela para a frente.
+    `definir_valor` (em `valor`) escolhe a opcao de uma lista pelo nome; num campo, poe o foco
+    nele, seleciona o que havia e digita o valor tecla por tecla (a janela vem para a frente).
+    Texto sempre e digitado, nunca colado: colar ou por o texto direto no controle e o que
+    detector de robo de site procura. Se o app nao aceitar, use `clicar` no mesmo numero. Depois de cada gesto volta a lista de
+    novo com um `veredito`: `confirmado` (fez o pedido; nao repita), `mudou` (a tela mudou,
+    veja em `mudou` se foi o esperado), `sem_efeito_aparente` (nada mudou: nao repita o mesmo
+    gesto, siga o `proximo`) ou `nao_da_para_confirmar` (sem leitura: confira no print). A
+    lista e da janela em foco, do menu e da barra: o que abriu atras dela nao aparece ali.
+    Peca `ver` (o print vem como imagem na proxima chamada) quando a lista nao bastar, vier
+    vazia (jogo, canvas, app que nao se descreve) ou quando algo deveria ter aparecido e nao
+    apareceu; `ver` com `marcar: true` desenha os numeros no print. Sem numero, clique pela coordenada do print
+    (`x`, `y`), nunca por palpite. `depois: print` forca o print depois do gesto; `depois:
+    nada` pula a conferencia. `janelas` lista as janelas abertas e a que esta em foco;
+    `focar` com `janela` (parte do titulo, como aparece em `janelas`) traz uma delas para a
+    frente. Para usar um programa, comece por `programas` com `nome`: aberto, `focar`; instalado
+    e fechado, `abrir` com o `nome`. App que acabou de abrir pode demorar e abrir atras: confira
+    em `janelas` e use `focar`, em vez de abrir de novo. Cada gesto diz em `na_janela` onde caiu:
+    se nao e o programa pedido, o gesto foi no lugar errado.
+    `digitar` escreve no campo em foco (clique nele antes); `tecla` aperta uma combinacao
+    (`ctrl+s`, `enter`, `alt+tab`), e com `segurar: 1.5` a deixa apertada por esse tempo
+    (andar num jogo, segurar shift+direita). Com o `@computador` ligado na conversa os gestos rodam
+    sem cartao: ligar a funcao foi a aprovacao. Pode preencher login e e-mail quando a pessoa pediu ou deu os dados: antes de
+    digitar e-mail ou dado pessoal o cartao pergunta a ela se e isso mesmo. Senha nunca pelo
+    teclado (o que voce digita passa pelo modelo): clique no campo de senha e escolha a senha
+    salva no preenchimento automatico do navegador ou do gerenciador de senhas. Codigo
+    que chega no celular dela, CAPTCHA ou passo que so ela pode fazer: chame `pedir_a_pessoa`
+    com `motivo` e encerre o turno; com a vez dela tudo e recusado, ate o print, ate ela
+    devolver pelo cartao. A sessao do computador continua presa a esta conversa entre turnos. Use `encerrar`
+    quando a pessoa pedir para liberar a sessao; concluir uma resposta nao encerra a sessao.
+    Para navegar pela tela, use o Chrome que o campo `navegador` do primeiro resultado do
+    turno indica: a pessoa escolhe entre o Chrome dela, com as contas dela, e um perfil
+    separado para o agente. Navegue como gente: entre pela pagina inicial e pela busca do proprio site, aceite
+    o aviso de cookies quando ele cobrir a pagina, uma pagina por vez. Depois de digitar um
+    endereco na barra, aperte `delete` antes do `enter`, senao o navegador completa com outra
+    pagina do historico. Carrossel e menu animado andam um clique por vez: `esperar` um
+    segundo entre cliques na mesma seta. Pagina de verificacao ("nao sou um robo", "confirme
+    que e humano", "continuar comprando" que volta para a mesma tela): nao clique na caixa.
+    Tente uma vez numa janela anonima (`tecla ctrl+shift+n`); se la tambem pedir, e da pessoa:
+    chame `pedir_a_pessoa`. Jogo, editor de imagem e modelagem 3D desenham a tela: a lista vem
+    quase vazia e o print orienta. Para ler um pedaco pequeno (menu do jogo, valor num painel),
+    `ver` com `regiao` amplia so ali. Em jogo, mande os movimentos juntos em `tecla` com
+    `sequencia` e confira com `esperar` `ate_mudar: true` em vez de adivinhar o tempo da
+    animacao. Em modelagem e editores, `arrastar` aceita `botao` (meio, direito) e `com`
+    (shift, ctrl, alt): no Blender, o botao do meio gira a vista e shift+meio move; `rolar`
+    aceita `com` (ctrl+rolar costuma ser zoom). `ler` traz o texto da janela da frente
+    (documento, pagina, formulario) sem print. Enquanto voce usa a tela, a pessoa nao ve o
+    chat, que fica atras da janela: o que ela le de voce e o `dizer`, uma frase curta na
+    caixinha da moldura. Diga o que vai fazer e por que ao comecar cada etapa e quando algo
+    muda o plano ("o site pede pagamento opcional; sigo pelo download gratis"); nao repita
+    o gesto, que ja aparece ao lado do mouse.
+  quando_usar:
+    - usar o computador clicar na tela abrir programa jogar mexer no mouse teclado desktop
+  determinista: false
+  parametros:
+    type: object
+    properties:
+      acao:
+        type: string
+        enum:
+          - ver
+          - elementos
+          - janelas
+          - clicar
+          - clicar_duas
+          - clicar_direito
+          - mover
+          - arrastar
+          - rolar
+          - digitar
+          - tecla
+          - esperar
+          - encerrar
+          - pedir_a_pessoa
+          - invocar
+          - definir_valor
+          - focar
+          - programas
+          - abrir
+          - ler
+      nome:
+        type: string
+        description: >-
+          Em `programas`, o programa procurado (diz se roda sem janela e se está instalado); em
+          `abrir`, o nome do programa como aparece no menu Iniciar.
+      janela:
+        type: string
+        description: Em `focar`, parte do titulo da janela, como aparece em `janelas`.
+      valor:
+        type: string
+        description: Em `definir_valor`, o texto do campo ou o nome da opcao da lista. Nunca senha.
+      motivo:
+        type: string
+        description: Em `pedir_a_pessoa`, o passo que e da pessoa (ex. fazer login no portal).
+      dizer:
+        type: string
+        description: >-
+          Em qualquer acao, uma frase curta (ate 120 caracteres) que aparece na caixinha da
+          moldura para a pessoa, que nao ve o chat enquanto voce usa a tela.
+      marcar:
+        type: boolean
+        description: Em `ver`, numera os elementos da janela no print; vale para os prints seguintes do turno.
+      elemento:
+        type: integer
+        minimum: 1
+        description: O numero observado na ultima leitura (`elementos` ou `ver` com `marcar`), sempre a partir de 1; nunca use 0. Obrigatorio em `invocar` e `definir_valor`.
+      x:
+        type: number
+        description: Coordenada no print (clicar, mover, arrastar, rolar).
+      y:
+        type: number
+        description: Coordenada no print.
+      para_x:
+        type: number
+        description: Em `arrastar`, o destino no print.
+      para_y:
+        type: number
+        description: Em `arrastar`, o destino no print.
+      direcao:
+        type: string
+        enum:
+          - baixo
+          - cima
+          - esquerda
+          - direita
+      quantidade:
+        type: integer
+        description: Em `rolar`, cliques de roda (padrao 3).
+      texto:
+        type: string
+        description: Em `digitar`.
+      ritmo:
+        type: string
+        enum: [automatico, natural, rapido, instantaneo]
+        description: >-
+          Em `digitar`: automatico (padrao) acelera editores locais conhecidos e usa
+          pausas naturais nos demais programas; rapido envia teclas com pausa curta;
+          instantaneo manda o texto inteiro de uma vez; natural digita caractere por
+          caractere com pausas variaveis.
+      tecla:
+        type: string
+        description: Em `tecla`, a combinacao, como `ctrl+s` ou `enter`.
+      segurar:
+        type: number
+        description: Em `tecla`, quantos segundos a combinacao fica apertada (maximo 10), para andar ou correr num jogo; solta sozinha no fim.
+      segundos:
+        type: number
+        description: Em `esperar` (maximo 30).
+      procurar:
+        type: string
+        description: >-
+          Em `ler`, so as linhas com este termo (como "R$"), cada uma com a de antes e a de
+          depois: le a janela inteira e devolve o que interessa.
+      contexto:
+        type: integer
+        description: Em `ler` com `procurar`, quantas linhas antes e depois de cada achado (padrao 1, ate 6).
+      ate_mudar:
+        type: boolean
+        description: Em `esperar`, volta assim que a tela (ou a `regiao`) mudar, ate `segundos`.
+      regiao:
+        type: object
+        description: >-
+          Em `ver`, so este pedaco, ampliado para ler (menu de jogo, painel de editor); em
+          `esperar` com `ate_mudar`, so este pedaco e vigiado. No espaco do print.
+        properties:
+          x: {type: number}
+          y: {type: number}
+          largura: {type: number}
+          altura: {type: number}
+      sequencia:
+        type: array
+        items: {type: string}
+        description: >-
+          Em `tecla`, varias teclas em ordem numa chamada, como ["direita", "direita", "z"];
+          "cima:0.6" segura 0,6 s. Ate 40 teclas.
+      pausa:
+        type: number
+        description: Em `tecla` com `sequencia`, segundos entre uma tecla e a outra (padrao 0,15).
+      botao:
+        type: string
+        enum: [esquerdo, direito, meio]
+        description: Em `arrastar`, o botao do mouse (padrao esquerdo).
+      com:
+        type: string
+        description: Em `arrastar` e `rolar`, modificadores segurados durante o gesto, como `shift` ou `ctrl+alt`.
+      depois:
+        type: string
+        enum:
+          - texto
+          - print
+          - nada
+        description: Como conferir o gesto. `texto` (padrao) volta a lista de elementos, e o print so quando a janela nao se descreve.
+      ver_depois:
+        type: boolean
+        description: "Antigo; `depois` manda. Falso e o mesmo que `depois: nada`, verdadeiro o mesmo que `depois: print`."
+    additionalProperties: true
+    required:
+      - acao
+memoria:
+  destino_residente: hq
+  categoria: memoria
+  aprendizado: escreve
+  efeito: escrita
+  acoes:
+    salvar: escrita
+    ler: leitura
+    listar: leitura
+    esquecer: escrita
+  descricao: Guarda, lê, lista ou esquece o que o Sentury sabe da pessoa.
+  orientacao: >-
+    A memória atravessa conversas: cada item é um arquivo com tipo e uma linha de
+    descrição, e a lista entra no turno. Considere `salvar` quando a pessoa disser algo
+    durável sobre ela, sobre o trabalho dela ou sobre uma decisão tomada, mesmo sem pedir
+    para lembrar; e quando ela pedir. Escreva o `fato` com o motivo quando houver ("prefere
+    respostas curtas: lê no celular"). `tipo` é pessoa, decisao, projeto ou referencia.
+    Para mudar um item, salve com o mesmo `nome`. O resultado de uma análise ou um recorte
+    que apareceu nos dados não é memória da pessoa. `ler` traz o texto inteiro de um item;
+    `esquecer` com `termo` apaga o que contém o termo, e sem termo apaga tudo.
+  quando_usar:
+    - lembra que eu prefiro guarda que meu nome de agora em diante sempre use nunca use preferencia
+    - esquece apaga da memoria o que voce sabe sobre mim minhas preferencias
+    - decidimos combinamos ficou decidido o projeto usa
+  interrompivel: true
+  parametros:
+    type: object
+    properties:
+      acao:
+        type: string
+        enum: [salvar, ler, listar, esquecer]
+      fato:
+        type: string
+        description: O que guardar (salvar), com o motivo quando houver.
+      tipo:
+        type: string
+        enum: [pessoa, decisao, projeto, referencia]
+      nome:
+        type: string
+        description: Nome curto do item; o mesmo nome atualiza (salvar) ou lê (ler).
+      descricao:
+        type: string
+        description: Uma linha que diz do que o item trata (salvar).
+      termo:
+        type: string
+        description: O que esquecer (esquecer). Vazio apaga tudo.
+    additionalProperties: true
+    required:
+      - acao
+salvar_memoria:
+  destino_residente: hq
+  categoria: memoria
+  efeito: escrita
+  # Substituida por `memoria(acao=...)`; so o despacho fica.
+  exposta_ao_modelo: false
+  quando_usar:
+    - lembra que eu prefiro guarda que meu nome de agora em diante sempre use nunca use preferencia
+  descricao: Guarda uma preferência/contexto do usuário.
+  orientacao: >-
+    guarda uma preferência ou contexto do usuário para os próximos turnos. Serve quando o
+    usuário pede para lembrar de algo ("lembre que meu foco é X"). Um recorte que só apareceu
+    na análise de agora não é preferência dele, e guardá-lo mudaria as próximas conversas sem
+    ele ter pedido.
+  parametros:
+    type: object
+    properties:
+      fato:
+        type: string
+    additionalProperties: true
+    required:
+      - fato
+esquecer_memoria:
+  destino_residente: hq
+  categoria: memoria
+  efeito: escrita
+  # Substituida por `memoria(acao=...)`; so o despacho fica.
+  exposta_ao_modelo: false
+  descricao: Remove memórias do usuário.
+  orientacao: >-
+    remove memórias que contêm o termo; sem termo, limpa tudo. Use quando o usuário pedir
+    para esquecer.
+  parametros:
+    type: object
+    properties:
+      termo:
+        type: string
+    additionalProperties: true
+    required:
+      - termo
+listar_memorias:
+  destino_residente: hq
+  categoria: memoria
+  efeito: leitura
+  # Substituida por `memoria(acao=...)`; so o despacho fica.
+  exposta_ao_modelo: false
+  interrompivel: true
+  descricao: Lista o que o Sentury sabe do usuário.
+  orientacao: >-
+    lista o que você já sabe sobre o usuário. Use quando ele perguntar "o que você sabe sobre
+    mim / minhas preferências".
+salvar_skill:
+  destino_residente: proibida
+  categoria: skill
+  efeito: escrita
+  descricao: Salva a análise da sessão como skill nomeada.
+  orientacao: >-
+    salva a sequência de análises já feita nesta conversa como uma skill nomeada, quando o
+    usuário pede ("salva como skill X"). Também guarda o código que você gerou no sandbox
+    (executar_python): depois de um cálculo que vale repetir, considere oferecer salvá-lo,
+    para a próxima vez não começar do zero.
+  parametros:
+    type: object
+    properties:
+      nome:
+        type: string
+      conteudo:
+        type: string
+    additionalProperties: true
+    required:
+      - nome
+      - conteudo
+executar_skill:
+  titulo: Ativando a skill {nome}
+  destino_residente: proibida
+  aprendizado: consulta
+  categoria: skill
+  efeito: escrita
+  nucleo: true
+  descricao: Carrega e executa uma skill salva com dados atuais.
+  orientacao: >-
+    reexecuta uma skill salva (re-roda as mesmas análises/código com dados atuais). Use quando
+    o usuário pedir "roda a skill X". Se o pedido casar com algo em "SKILLS/FERRAMENTAS
+    QUE VOCÊ JÁ APRENDEU" (no seu contexto), reutilizar com executar_skill sai mais rápido e
+    mais certo que refazer do zero; diga que já tem isso pronto.
+  quando_usar:
+    - usar executar carregar aplicar skill procedimento rotina
+  prazo_s: 90.0
+  parametros:
+    type: object
+    properties:
+      nome:
+        type: string
+    additionalProperties: true
+    required:
+      - nome
+listar_skills:
+  destino_residente: proibida
+  aprendizado: consulta
+  categoria: skill
+  efeito: leitura
+  interrompivel: true
+  descricao: Lista as skills salvas.
+  orientacao: lista as skills salvas. Use para "quais skills eu tenho".
+  quando_usar:
+    - quais skills catálogo habilidades rotinas disponíveis
+esquecer_skill:
+  destino_residente: proibida
+  categoria: skill
+  efeito: escrita
+  descricao: Remove uma skill.
+  orientacao: remove uma skill.
+  parametros:
+    type: object
+    properties:
+      nome:
+        type: string
+    additionalProperties: true
+    required:
+      - nome
+
+aprender_skill:
+  destino_residente: proibida
+  aprendizado: escreve
+  # Escreve só na pasta de skills do usuário; a política de memória basta.
+  categoria: memoria
+  efeito: escrita
+  acoes:
+    criar: escrita
+    corrigir: escrita
+    acrescentar: escrita
+    anexar: escrita
+    aposentar: escrita
+    desfazer: escrita
+  tipo_na_tela: edit
+  intencao: alterar
+  descricao: Cria ou corrige uma skill procedural com o que o trabalho ensinou.
+  orientacao: >-
+    Skill guarda como fazer uma classe de tarefa, para a próxima vez começar sabendo.
+    Considere quando a pessoa corrigiu o jeito de fazer, quando um caminho que não era
+    óbvio funcionou, ou quando uma skill carregada estava errada ou incompleta. Na maioria
+    das conversas não há nada para guardar, e tudo bem. Prefira mexer numa skill que já
+    cobre o assunto a `criar` outra: `acrescentar` põe uma lição nova no fim ou sob uma
+    `secao` (por exemplo "Armadilhas"), sem copiar nada; `corrigir` troca um `trecho`
+    exato que estava errado, e se o trecho não bater a resposta traz o texto atual.
+    `criar` avisa quando já existe uma parecida. Um script que vale repetir vai com
+    `anexar` em `scripts/`, e o SKILL.md ganha uma linha dizendo para que ele serve. Falha
+    de ambiente, erro que passou sozinho e resultado de um dia não viram skill: endurecem
+    numa regra que atrapalha depois. Duas skills suas para a mesma tarefa: leve para uma o
+    que só a outra tem e `aposentar` a que sobrou. `desfazer` volta a última escrita,
+    inclusive trazer de volta uma aposentada.
+  quando_usar:
+    - a partir de agora faça assim da proxima vez lembre desse jeito de fazer
+    - salva esse procedimento esse script para reaproveitar
+  parametros:
+    type: object
+    properties:
+      acao:
+        type: string
+        enum: [criar, corrigir, acrescentar, anexar, aposentar, desfazer]
+      nome:
+        type: string
+        description: Nome da skill (classe de tarefa, por exemplo revisao-de-contrato).
+      descricao:
+        type: string
+        description: Uma linha sobre quando a skill serve (criar).
+      corpo:
+        type: string
+        description: Markdown com quando usar, passos e armadilhas (criar).
+      trecho:
+        type: string
+        description: Texto exato que muda, que aparece uma vez só (corrigir).
+      novo:
+        type: string
+        description: Texto que entra no lugar do trecho (corrigir) ou a lição nova (acrescentar).
+      secao:
+        type: string
+        description: Título da seção onde a lição entra (acrescentar); criada se não existir.
+      arquivo:
+        type: string
+        description: SKILL.md ou um caminho em references/, templates/, scripts/ ou assets/.
+      conteudo:
+        type: string
+        description: Conteúdo do arquivo de apoio (anexar).
+      mesmo_assim:
+        type: boolean
+        description: Cria mesmo havendo skill parecida, quando a tarefa é de fato outra.
+    additionalProperties: true
+    required:
+      - acao
+      - nome
+
+find_skills:
+  destino_residente: proibida
+  # Lê a web como `ler_pagina`; a instalação pede o cartão dentro da ferramenta.
+  categoria: conhecimento
+  efeito: escrita
+  acoes:
+    buscar: leitura
+    ver: leitura
+    instalar: escrita
+  tipo_na_tela: read
+  intencao: consultar
+  interrompivel: true
+  determinista: false
+  texto_de_terceiros: true
+  descricao: Procura skills públicas de outras pessoas, mostra uma antes e instala com aprovação.
+  orientacao: >-
+    Skill de fora é o procedimento que alguém já escreveu para uma classe de tarefa (ler PDF,
+    montar planilha, usar uma API). Considere quando a pessoa pedir algo que nenhuma skill sua
+    cobre e que tem cara de procedimento conhecido, ou quando ela pedir para procurar uma.
+    `buscar` traz nome, repositório e instalações; nome quase igual ao de uma skill famosa,
+    vindo de outro dono e com poucas instalações, costuma ser cópia maliciosa. `ver` mostra o
+    texto, a licença, os scripts e as skills suas parecidas, sem gravar nada. Conte à pessoa
+    de onde vem, a licença e se há scripts antes de `instalar`, que sempre pede a aprovação
+    dela: o texto vira procedimento e os scripts rodam na máquina dela.
+  quando_usar:
+    - procure uma skill pronta instale uma skill de fora tem alguma skill para isso
+  parametros:
+    type: object
+    properties:
+      acao:
+        type: string
+        enum: [buscar, ver, instalar]
+      consulta:
+        type: string
+        description: Assunto da skill, em poucas palavras, de preferência em inglês (buscar).
+      id:
+        type: string
+        description: dono/repositorio/skill, como veio do `buscar` (ver, instalar).
+      nome:
+        type: string
+        description: Nome local, quando já existe uma skill com o nome original (instalar).
+      limite:
+        type: integer
+        minimum: 1
+        maximum: 20
+    additionalProperties: false
+    required:
+      - acao
+
+generate_chart:
+  titulo: Desenhando o gráfico a partir da análise
+  destino_residente: proibida
+  categoria: exportacao
+  efeito: escrita
+  descricao: >-
+    Gera um gráfico (PNG) de um resultado já calculado nesta conversa.
+  orientacao: >-
+    Considere quando há 3 ou mais categorias ou períodos: aí a forma mostra o que a frase
+    não mostra. Um ou dois números cabem numa frase; se pediram gráfico e o dado não
+    sustenta, diga o número e explique em uma linha por que o gráfico não ajuda. Ela
+    recalcula a partir da receita do resultado, então precisa de uma análise feita antes
+    neste pedido. Para vários painéis, eixo duplo ou anotação o preset não cobre:
+    `executar_python` com matplotlib ou `export_html`.
+  quando_usar:
+    - gráfico chart imagem linha barras visualização
+  parametros:
+    type: object
+    properties:
+      source:
+        type: string
+      tipo:
+        type: string
+    additionalProperties: true
+export_xlsx:
+  titulo: Preparando a planilha
+  destino_residente: proibida
+  categoria: exportacao
+  efeito: escrita
+  descricao: Exporta um resultado para Excel.
+  orientacao: >-
+    exporta o resultado indicado para uma planilha Excel. Ela recalcula a partir da receita de um resultado já computado nesta conversa;
+    sem esse resultado não há o que exportar, e o caminho é fazer a análise antes.
+  parametros:
+    type: object
+    properties:
+      source:
+        type: string
+      fontes:
+        type: array
+        items:
+          type: string
+        description: Vários resultados desta conversa para cruzar num arquivo só; sem isto, vale `source`.
+    additionalProperties: true
+export_csv:
+  titulo: Preparando a planilha
+  destino_residente: proibida
+  categoria: exportacao
+  efeito: escrita
+  descricao: Exporta um resultado para CSV.
+  orientacao: >-
+    exporta o resultado indicado para CSV. Ela recalcula a partir da receita de um resultado já computado nesta conversa;
+    sem esse resultado não há o que exportar, e o caminho é fazer a análise antes.
+  parametros:
+    type: object
+    properties:
+      source:
+        type: string
+      fontes:
+        type: array
+        items:
+          type: string
+        description: Vários resultados desta conversa para cruzar num arquivo só; sem isto, vale `source`.
+    additionalProperties: true
+export_pdf:
+  titulo: Gerando o PDF
+  destino_residente: proibida
+  categoria: exportacao
+  efeito: escrita
+  descricao: Exporta um resultado para PDF.
+  orientacao: >-
+    exporta o resultado indicado para um relatório PDF. Ela recalcula a partir da receita de um resultado já computado nesta conversa;
+    sem esse resultado não há o que exportar, e o caminho é fazer a análise antes.
+  parametros:
+    type: object
+    properties:
+      source:
+        type: string
+      fontes:
+        type: array
+        items:
+          type: string
+        description: Vários resultados desta conversa para cruzar num arquivo só; sem isto, vale `source`.
+    additionalProperties: true
+export_html:
+  titulo: Montando o dashboard HTML
+  destino_residente: proibida
+  categoria: exportacao
+  efeito: escrita
+  descricao: >-
+    Gera um dashboard HTML determinístico a partir de um resultado computado.
+  orientacao: >-
+    gera um artefato HTML determinístico, com indicadores, visualização SVG e tabela, a partir
+    do resultado indicado. Use para pedidos explícitos de dashboard, painel ou relatório analítico
+    em HTML. Ela recalcula a partir da receita de um resultado já computado nesta conversa;
+    sem esse resultado não há o que exportar, e o caminho é fazer a análise antes.
+  parametros:
+    type: object
+    properties:
+      source:
+        type: string
+      fontes:
+        type: array
+        items:
+          type: string
+        description: Vários resultados desta conversa para cruzar num arquivo só; sem isto, vale `source`.
+      presentation_style:
+        type: string
+        enum: [brief, dashboard, report, timeline]
+        description: Forma do painel; sem escolha, sai o resumo (`brief`).
+      request:
+        type: string
+    additionalProperties: true

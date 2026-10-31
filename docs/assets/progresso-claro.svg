@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="150" viewBox="0 0 1040 150" role="img" aria-label="Progresso do Sentury: 8 de 10 etapas feitas; agora no ciclo de mutação">
+<style>
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif}
+.nome{font-size:13px;font-weight:600}
+.quando{font-size:12px}
+@media (prefers-reduced-motion: no-preference){
+.anda{animation:anda 0.9s linear infinite}
+@keyframes anda{from{transform:translateX(-12px)}to{transform:translateX(0)}}
+}
+</style>
+<text x="10" y="24" class="nome" style="font-size:15px" fill="#1f2328">Onde o Sentury está</text>
+<text x="1030" y="24" class="quando" text-anchor="end" fill="#59636e">8 de 10 etapas · desde junho de 2026</text>
+<rect x="10.0" y="82" width="94.8" height="14" rx="4" fill="#1f2328"/>
+<text x="10.0" y="120" class="nome" fill="#1f2328">Fundação</text>
+<text x="10.0" y="138" class="quando" fill="#59636e">jun</text>
+<rect x="112.8" y="82" width="94.8" height="14" rx="4" fill="#1f2328"/>
+<text x="112.8" y="120" class="nome" fill="#1f2328">Canais</text>
+<text x="112.8" y="138" class="quando" fill="#59636e">jul</text>
+<rect x="215.6" y="82" width="94.8" height="14" rx="4" fill="#1f2328"/>
+<text x="215.6" y="120" class="nome" fill="#1f2328">Confiança</text>
+<text x="215.6" y="138" class="quando" fill="#59636e">ago</text>
+<rect x="318.4" y="82" width="94.8" height="14" rx="4" fill="#1f2328"/>
+<text x="318.4" y="120" class="nome" fill="#1f2328">Motor</text>
+<text x="318.4" y="138" class="quando" fill="#59636e">set</text>
+<rect x="421.2" y="82" width="94.8" height="14" rx="4" fill="#1f2328"/>
+<text x="421.2" y="120" class="nome" fill="#1f2328">Generalista</text>
+<text x="421.2" y="138" class="quando" fill="#59636e">set</text>
+<rect x="524.0" y="82" width="94.8" height="14" rx="4" fill="#1f2328"/>
+<text x="524.0" y="120" class="nome" fill="#1f2328">Mãos</text>
+<text x="524.0" y="138" class="quando" fill="#59636e">set</text>
+<rect x="626.8" y="82" width="94.8" height="14" rx="4" fill="#1f2328"/>
+<text x="626.8" y="120" class="nome" fill="#1f2328">Equipe</text>
+<text x="626.8" y="138" class="quando" fill="#59636e">out</text>
+<rect x="729.6" y="82" width="94.8" height="14" rx="4" fill="#1f2328"/>
+<text x="729.6" y="120" class="nome" fill="#1f2328">Aprendizado</text>
+<text x="729.6" y="138" class="quando" fill="#59636e">out</text>
+<defs><clipPath id="corte-claro"><rect x="832.4" y="82" width="52.1" height="14" rx="4"/></clipPath></defs>
+<rect x="832.4" y="82" width="94.8" height="14" rx="4" fill="#ebe7dc"/>
+<g clip-path="url(#corte-claro)">
+<rect x="832.4" y="82" width="52.1" height="14" fill="#f2c200"/>
+<g class="anda">
+<polygon points="808.4,96 814.4,96 828.4,82 822.4,82" fill="#d9a900"/>
+<polygon points="820.4,96 826.4,96 840.4,82 834.4,82" fill="#d9a900"/>
+<polygon points="832.4,96 838.4,96 852.4,82 846.4,82" fill="#d9a900"/>
+<polygon points="844.4,96 850.4,96 864.4,82 858.4,82" fill="#d9a900"/>
+<polygon points="856.4,96 862.4,96 876.4,82 870.4,82" fill="#d9a900"/>
+<polygon points="868.4,96 874.4,96 888.4,82 882.4,82" fill="#d9a900"/>
+<polygon points="880.4,96 886.4,96 900.4,82 894.4,82" fill="#d9a900"/>
+<polygon points="892.4,96 898.4,96 912.4,82 906.4,82" fill="#d9a900"/>
+</g>
+</g>
+<rect x="851.8" y="48" width="56" height="22" rx="11" fill="#f2c200"/>
+<text x="879.8" y="63.5" text-anchor="middle" class="quando" style="font-weight:600" fill="#1f2328">agora</text>
+<path d="M874.8,70 L884.8,70 L879.8,76 Z" fill="#f2c200"/>
+<text x="832.4" y="120" class="nome" fill="#1f2328">Evolução</text>
+<text x="832.4" y="138" class="quando" fill="#8a6a00">agora</text>
+<rect x="935.9" y="82.75" width="93.3" height="12.5" rx="4" fill="none" stroke="#59636e" stroke-width="1.5" stroke-dasharray="4 4"/>
+<text x="935.2" y="120" class="nome" fill="#59636e">Servidor</text>
+<text x="935.2" y="138" class="quando" fill="#59636e">próximo</text>
+</svg>

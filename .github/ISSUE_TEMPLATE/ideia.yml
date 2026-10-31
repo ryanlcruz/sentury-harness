@@ -1,0 +1,31 @@
+name: Ideia ou mudança
+description: Uma capacidade nova ou uma mudança no jeito que o Sentury trabalha.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: Mudança grande (ferramenta nova, laço do turno, permissão, contrato de setor) começa aqui, antes do código. Um acordo sobre o rumo evita um PR que não entra.
+  - type: textarea
+    id: problema
+    attributes:
+      label: O problema
+      description: O que hoje não dá para fazer, ou dá com trabalho demais. Um exemplo real ajuda mais que uma descrição geral.
+    validations:
+      required: true
+  - type: textarea
+    id: proposta
+    attributes:
+      label: A proposta
+      description: O que mudaria, e onde. Se for comportamento, diga em que arquivo de dado ele seria declarado.
+    validations:
+      required: true
+  - type: textarea
+    id: medida
+    attributes:
+      label: Como saber se funcionou
+      description: O teste, o replay ou a bancada que mostraria a diferença.
+  - type: textarea
+    id: alternativas
+    attributes:
+      label: Alternativas
+      description: Outros caminhos que você considerou e por que este parece melhor.

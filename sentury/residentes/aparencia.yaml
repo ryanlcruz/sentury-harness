@@ -1,0 +1,35 @@
+# Aparência dos residentes.
+#
+# O Sentury monta cada coruja a partir do nome: a plumagem e um acessório extra
+# saem sorteados do nome, então cada residente tem a sua cara e ela não muda.
+# A família, que vem do papel, dá só o objeto-símbolo. Depois de criado, a
+# pessoa troca os acessórios; a plumagem fica. As peças são desenhadas no
+# client, cada uma no mesmo quadro da coruja. O olho é a cor da íris na coruja
+# em 3D do Escritório.
+
+familias:
+  infraestrutura: {nome: Infraestrutura, simbolo: {cabeca: capacete}}
+  pesquisa: {nome: Pesquisa, simbolo: {asa: lupa}}
+  atendimento: {nome: Atendimento, simbolo: {ouvidos: fone}}
+  financas: {nome: Finanças, simbolo: {asa: prancheta}}
+  codigo: {nome: Código, simbolo: {asa: notebook}}
+  dados: {nome: Dados, simbolo: {rosto: monoculo}}
+  seguranca: {nome: Segurança, simbolo: {asa: escudo}}
+  conteudo: {nome: Conteúdo, simbolo: {pescoco: borboleta}}
+
+plumagens:
+  aco: {nome: Aço, penas: "#557a9e", asas: "#3f6081", barriga: "#c2d5e8", olho: "#6fb3ff"}
+  terra: {nome: Terra, penas: "#c97a40", asas: "#a35e2f", barriga: "#f4cfa3", olho: "#ffb15c"}
+  lavanda: {nome: Lavanda, penas: "#8668c4", asas: "#6a50a3", barriga: "#d8cbf3", olho: "#c58cff"}
+  folha: {nome: Folha, penas: "#4c9a62", asas: "#397b4b", barriga: "#c3e5ca", olho: "#7fe0a6"}
+  grafite: {nome: Grafite, penas: "#2e2b38", asas: "#221f2b", barriga: "#5d5673", olho: "#a68bff"}
+  anil: {nome: Anil, penas: "#3f72b3", asas: "#2d588f", barriga: "#b4cff0", olho: "#5ab0ff"}
+  vinho: {nome: Orquídea, penas: "#bd6aa0", asas: "#934f80", barriga: "#f3cbe2", olho: "#ff8fb0"}
+  coral: {nome: Coral, penas: "#de7552", asas: "#bb5a3b", barriga: "#f9ccb8", olho: "#ffc46b"}
+
+encaixes:
+  cabeca: [capacete, gorro, bone, chapeu]
+  rosto: [oculos, escuros, monoculo]
+  ouvidos: [fone]
+  pescoco: [gravata, borboleta, cachecol, cracha]
+  asa: [chave, lupa, prancheta, notebook, caneca, escudo]

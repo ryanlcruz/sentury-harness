@@ -1,0 +1,44 @@
+nome: setor_teste
+metricas:
+  medida:
+    label: Medida
+    unidade: "%"
+    fonte: registros
+    descricao: Valor observado nos registros.
+    maior_melhor: true
+    grupo: operacao
+persona: O Sentury consulta a Medida dos registros deste setor.
+persona_resposta: Apresente a Medida com a origem nos registros.
+dimensoes:
+  grupo: []
+tabelas_no_sandbox: [registros]
+texto_de_terceiros: [consultar_medida]
+dicas_de_grafico:
+  - ferramenta: consultar_medida
+    termos: [medida, registros]
+fontes_de_dados:
+  - rotulo: Medida dos registros
+    descricao: Valores por grupo.
+    ferramenta: consultar_medida
+    termos: [medida]
+publicos:
+  - rotulo: Equipe
+    descricao: Pessoas que consultam os registros.
+atalhos:
+  - comando: medida
+    descricao: Consultar a medida.
+    pergunta: Como está a medida geral?
+exemplos_de_pedido: ["Como está a medida do grupo Alfa?"]
+colunas_de_grafico:
+  consultar_medida: [grupo, medida]
+formas_de_grafico:
+  consultar_motivos: barra_horizontal
+  consultar_serie: espiral
+titulos_de_secao:
+  consultar_medida: Medida dos registros
+titulos_de_painel:
+  consultar_medida: Medida dos registros
+titulos_de_passo:
+  consultar_medida: Consultando a medida...
+analise_de_base: consultar_medida
+ferramenta_de_causa: consultar_medida

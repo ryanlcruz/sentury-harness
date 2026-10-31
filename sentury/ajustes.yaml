@@ -1,0 +1,96 @@
+# As escolhas que a pessoa faz na tela de Configurações, e o que cada uma oferece.
+# O valor escolhido mora em ~/.sentury/ajustes.json; aqui fica só o cardápio.
+# Chave de provedor nunca mora aqui: `chave` é o nome da variável que o cofre
+# do RobinBandit preenche.
+
+embeddings:
+  padrao: nenhum
+  provedores:
+    nenhum:
+      rotulo: Sem modelo
+      descricao: Compara palavras parecidas. Não custa nada, mas não liga "vagas" a "desligar três pessoas".
+    gemini:
+      rotulo: Gemini
+      descricao: Pela API do Google, com a chave do Gemini.
+      base_url: https://generativelanguage.googleapis.com/v1beta/openai
+      chave: GEMINI_API_KEY
+      modelos:
+        # `corte` é a nota mínima para um texto contar como relacionado; cada modelo
+        # espalha as notas de um jeito, por isso o corte é do modelo. `repeticao` é a nota
+        # a partir da qual duas anotações dizem o mesmo e a nova troca a antiga; só existe
+        # onde foi medida (repetidas acima de 0,90, distintas abaixo de 0,79).
+        gemini-embedding-001: {corte: 0.63, repeticao: 0.88}
+    openrouter:
+      rotulo: OpenRouter
+      descricao: Pela chave do OpenRouter, com modelos de vários fornecedores.
+      base_url: https://openrouter.ai/api/v1
+      chave: OPENROUTER_API_KEY
+      modelos:
+        openai/text-embedding-3-large: {corte: 0.41}
+        google/gemini-embedding-001: {corte: 0.63, repeticao: 0.88}
+        openai/text-embedding-3-small: {corte: 0.40}
+    openai:
+      rotulo: OpenAI
+      descricao: Pela API da OpenAI.
+      base_url: https://api.openai.com/v1
+      chave: OPENAI_API_KEY
+      modelos:
+        text-embedding-3-large: {corte: 0.41}
+        text-embedding-3-small: {corte: 0.40}
+    local:
+      rotulo: Local
+      descricao: Um modelo de embeddings rodando nesta máquina (LM Studio ou Ollama). Nada sai do computador.
+      base_url: http://127.0.0.1:1234/v1
+      # Os modelos saem do próprio servidor; o corte vale para os que não têm um medido.
+      modelos_do_servidor: true
+      corte_padrao: 0.5
+
+voz:
+  padrao: gemini_live
+  provedores:
+    gemini_live:
+      rotulo: Gemini Live
+      descricao: Conversa por voz em tempo real pela API do Google, com interrupção natural.
+      chave: GEMINI_API_KEY
+      # Os modelos saem da API (os que aceitam conversa ao vivo); este é o de partida.
+      modelo_padrao: gemini-3.1-flash-live-preview
+      voz_padrao: Sulafat
+      vozes: [Sulafat, Zephyr, Puck, Charon, Kore, Fenrir, Leda, Orus, Aoede, Callirrhoe, Autonoe,
+              Enceladus, Iapetus, Umbriel, Algieba, Despina, Erinome, Algenib, Rasalgethi,
+              Laomedeia, Achernar, Alnilam, Schedar, Gacrux, Pulcherrima, Achird,
+              Zubenelgenubi, Vindemiatrix, Sadachbia, Sadaltager]
+
+navegador:
+  # Em qual Chrome o agente navega quando usa a tela. As abas da extensão são outra coisa:
+  # o Sentury abre as dele, e elas existem nos dois casos.
+  padrao: pessoa
+  nome_padrao: Agente
+  perfis:
+    pessoa:
+      rotulo: Meu Chrome
+      descricao: O seu Chrome, com as suas contas e sessões. Serve para trabalhar nas suas coisas, como ver o CI no GitHub.
+    agente:
+      rotulo: Chrome do agente
+      descricao: Um Chrome separado, sem as suas contas, extensões e cookies. Ganha um atalho no menu Iniciar com o nome que você escolher.
+
+locais:
+  # Como reconhecer, sem perguntar, um servidor de modelos já instalado nesta máquina.
+  # O endereço vem do catálogo do roteador; aqui ficam os programas que denunciam a
+  # instalação (~ é a pasta da pessoa, %VAR% uma variável do Windows).
+  lmstudio:
+    executaveis: ["~/.lmstudio/bin/lms.exe", "~/.lmstudio/bin/lms", "lms"]
+    onde_rodar: Ligue em Configurações › Modelos locais, ou abra o LM Studio e ligue o servidor.
+  ollama:
+    executaveis: ["%LOCALAPPDATA%/Programs/Ollama/ollama.exe", "ollama"]
+    onde_rodar: Abra o Ollama; ele liga o servidor sozinho.
+  llamacpp:
+    executaveis: ["llama-server"]
+    onde_rodar: Rode o llama-server com o modelo que quiser.
+  vllm:
+    executaveis: ["vllm"]
+    onde_rodar: Rode o servidor do vLLM.
+
+mesa:
+  # Esforço da vez na Mesa quando o residente não tem um no cérebro dele. A fala é curta
+  # e a conversa espera cada um; o trabalho dele segue o esforço do cérebro.
+  esforco_padrao: low

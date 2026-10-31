@@ -1,0 +1,57 @@
+services:
+  hq:
+    build:
+      context: .
+      target: hq
+    image: sentury-hq:local
+    restart: unless-stopped
+    labels:
+      sentury.servico: hq
+    # Chaves dos provedores e do Telegram, só na VPS e fora do git. O que vem
+    # em `environment` abaixo vale por cima do arquivo.
+    env_file:
+      - path: .env.hq
+        required: false
+    environment:
+      SENTURY_HOME: /var/lib/sentury
+      SENTURY_HQ_TOKEN: ${SENTURY_HQ_TOKEN:?Defina o token da HQ}
+      # No servidor, a leitura de página recusa endereço interno da rede dele.
+      SENTURY_EM_SERVIDOR: "1"
+      SENTURY_SHELL: "true"
+      SENTURY_CAIXA_IMAGE: sentury-caixa:local
+      # Sem caixa, nada de residente roda: o container da HQ tem o docker.sock.
+      SENTURY_CAIXA_OBRIGATORIA: "true"
+      SENTURY_DOMAIN: generalista
+      # Informe a URL pública se a HQ estiver atrás de um proxy reverso.
+      SENTURY_HQ_PUBLIC_URL: ${SENTURY_HQ_PUBLIC_URL:-}
+    ports:
+      - "${SENTURY_HQ_BIND:-127.0.0.1}:${SENTURY_HQ_PORT:-8000}:8000"
+    volumes:
+      - sentury_home:/var/lib/sentury
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /proc:/host/proc:ro
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    sysctls:
+      net.ipv4.ip_forward: "0"
+    mem_limit: 4g
+    cpus: 2
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+  caixa:
+    build:
+      context: .
+      target: caixa
+    image: sentury-caixa:local
+    profiles: [build]
+    network_mode: none
+    user: "1000:1000"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+volumes:
+  sentury_home:

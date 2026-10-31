@@ -1,0 +1,522 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* Tailwind v4 tirou o `cursor: pointer` padrao de button, e a interface
+   inteira ficou sem o ponteiro de mao. Devolvido aqui, uma vez. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+summary,
+label:has(> input[type="checkbox"]),
+select:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+@theme {
+  --font-sans: 'Geist Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Geist Mono Variable', monospace;
+
+  --color-canvas: #f6f5f0;
+  --color-dock-bg: #161616;
+  --color-dock-card: #1e1e1e;
+  --color-dock-border: #2a2a2a;
+  --color-bubble-user: #1e1e1e;
+  --color-gold: #f5c400;
+  --color-gold-hover: #c99f00;
+  --color-gold-soft: #fff4b8;
+  --color-gold-ink: #6f5900;
+  --color-sev-good: #22c55e;
+  --color-sev-warn: #eab308;
+  --color-sev-bad: #ef4444;
+}
+
+:root {
+  color-scheme: light;
+  --sentury-motion-duration: 200ms;
+  --sentury-motion-easing: ease-in;
+  --sentury-stream-duration: 150ms;
+}
+
+/* Um ritmo para as mudancas comuns do client. Loops de trabalho e atencao
+   tem duracoes proprias porque comunicam estados diferentes. */
+:where(button, summary, [role="button"], input, textarea, select),
+[class*="animate-[sentury-"] {
+  transition-duration: var(--sentury-motion-duration);
+  transition-timing-function: var(--sentury-motion-easing);
+}
+
+[class*="animate-[sentury-"] {
+  animation-duration: var(--sentury-motion-duration) !important;
+  animation-timing-function: var(--sentury-motion-easing) !important;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-canvas);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+.sentury-cell-negative {
+  color: #c33b2e !important;
+  font-weight: 600;
+}
+
+.sentury-cell-positive {
+  color: #167a4a !important;
+  font-weight: 600;
+}
+
+/* Sem reticencias animadas. O rotulo ja e varrido pelo dourado da marca, e
+   ponto pulando e o indicador de carregamento mais generico que existe —
+   empilhar os dois seria dois sinais dizendo a mesma coisa, um deles sem
+   identidade nenhuma. */
+.sentury-processing-label { color: #3f3a31; }
+
+.sentury-processing-icon {
+  animation: sentury-working-pulse 1.8s ease-in-out infinite;
+}
+
+.sentury-working-indicator {
+  animation: sentury-spinner-turn 900ms linear infinite;
+}
+
+@keyframes sentury-working-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .35; }
+}
+
+@keyframes sentury-spinner-turn {
+  to { transform: rotate(360deg); }
+}
+
+/* O cursor do terminal do card enquanto o comando roda. */
+.sentury-cursor { animation: sentury-cursor-blink 1s steps(1) infinite; }
+@keyframes sentury-cursor-blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .sentury-cursor { animation: none; } }
+
+@keyframes sentury-stream-enter {
+  from { opacity: .35; filter: blur(4px); }
+  to { opacity: 1; filter: blur(0); }
+}
+
+.sentury-stream-token {
+  animation: sentury-stream-enter var(--sentury-stream-duration) ease-out both;
+}
+
+@keyframes sentury-needs-user-pulse {
+  0%, 100% { background-color: #fffdf8; box-shadow: 0 -18px 48px rgb(35 31 24 / .16); }
+  50% { background-color: #fff7ce; box-shadow: 0 -18px 48px rgb(245 196 0 / .25); }
+}
+
+.sentury-needs-user {
+  animation:
+    sentury-sheet-up var(--sentury-motion-duration) var(--sentury-motion-easing) both,
+    sentury-needs-user-pulse 600ms ease-in-out var(--sentury-motion-duration) 2;
+}
+
+@keyframes sentury-drawer-in {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* 4px, não 8. Durante o streaming os blocos chegam em sequência, e cada um
+   saltando 8px acumula movimento — o conjunto lê como instabilidade em vez de
+   "chegou". Quatro dá a mesma sensação sem empurrar a página. */
+@keyframes sentury-message-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+
+
+@keyframes sentury-modal-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes sentury-workbench-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes sentury-sheet-up {
+  from { opacity: 0; transform: translateY(14px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes sentury-settings-in {
+  from { opacity: 0; transform: scale(.995); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes sentury-bell {
+  0%, 80%, 100% { transform: rotate(0); }
+  86% { transform: rotate(10deg); }
+  92% { transform: rotate(-8deg); }
+  96% { transform: rotate(4deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Mantém a tipografia do plugin com a paleta do Sentury. */
+.prose {
+  --tw-prose-body: #3f3a31;
+  --tw-prose-headings: #1a1a1a;
+  --tw-prose-lead: #57503f;
+  --tw-prose-links: #6f5900;
+  --tw-prose-bold: #1a1a1a;
+  --tw-prose-counters: #7a7263;
+  --tw-prose-bullets: #c9c0ac;
+  --tw-prose-hr: #e3ddcd;
+  --tw-prose-quotes: #3f3a31;
+  --tw-prose-quote-borders: var(--color-gold);
+  --tw-prose-captions: #7a7263;
+  --tw-prose-code: #4a3d00;
+  --tw-prose-pre-code: #e8e2d4;
+  --tw-prose-pre-bg: #24231f;
+  --tw-prose-th-borders: #ded7c6;
+  --tw-prose-td-borders: #eae4d6;
+  max-width: none;
+}
+
+.prose :where(code):not(:where(pre code)) {
+  background: rgb(245 196 0 / 0.16);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  font-weight: 500;
+}
+.prose :where(code):not(:where(pre code))::before,
+.prose :where(code):not(:where(pre code))::after { content: none; }
+
+.prose :where(table) { font-size: 0.9em; }
+.prose :where(blockquote) { font-style: normal; }
+
+/* Scrollbar do produto, no lugar da padrao do navegador. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cdc5b2 transparent;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background-color: #cdc5b2;
+  border-radius: 999px;
+  /* A borda transparente afina o polegar sem estreitar a area de clique. */
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background-color: var(--color-gold-hover); }
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* Gavetas escuras invertem. */
+.sentury-dark-scroll { scrollbar-color: #3a3a3a transparent; }
+.sentury-dark-scroll::-webkit-scrollbar-thumb { background-color: #3a3a3a; }
+.sentury-dark-scroll::-webkit-scrollbar-thumb:hover { background-color: var(--color-gold); }
+
+/* O terminal do card: a barra quase some, e aparece um pouco ao passar o
+   mouse. A saida e o que importa, nao o trilho. */
+.sentury-terminal-scroll { scrollbar-width: thin; scrollbar-color: #26251f transparent; }
+.sentury-terminal-scroll:hover { scrollbar-color: #45443d transparent; }
+.sentury-terminal-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.sentury-terminal-scroll::-webkit-scrollbar-thumb { background-color: #26251f; }
+.sentury-terminal-scroll:hover::-webkit-scrollbar-thumb { background-color: #45443d; }
+.sentury-terminal-scroll::-webkit-scrollbar-thumb:hover { background-color: #5a5850; }
+
+/* Callout, checklist, cartao de KPI, diagrama e SVG. Ver domain/markdown.ts. */
+
+.md-h { font-weight: 650; line-height: 1.3; margin: 1.4em 0 .5em; color: #1a1a1a; }
+h3.md-h { font-size: 1.05rem; }
+h4.md-h { font-size: .95rem; }
+h5.md-h, h6.md-h { font-size: .88rem; }
+
+.md-list { margin: .6em 0; padding-left: 1.35em; }
+.md-list li { margin: .25em 0; }
+
+.md-quote {
+  margin: 1em 0;
+  padding: .1em 0 .1em 1em;
+  border-left: 3px solid #ded7c6;
+  color: #57503f;
+}
+
+.md-hr { border: none; border-top: 1px solid #e3ddcd; margin: 1.6em 0; }
+
+.md-callout {
+  margin: 1em 0;
+  padding: .7em .9em;
+  border-left: 3px solid var(--color-gold);
+  border-radius: 8px;
+  background: rgb(245 196 0 / .09);
+}
+.md-callout__label {
+  display: block;
+  margin-bottom: .25em;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--color-gold-ink);
+}
+.md-callout__body > :first-child { margin-top: 0; }
+.md-callout__body > :last-child { margin-bottom: 0; }
+
+.md-callout--note      { border-left-color: #94a3b8; background: rgb(148 163 184 / .10); }
+.md-callout--note .md-callout__label      { color: #55637a; }
+.md-callout--tip       { border-left-color: var(--color-sev-good); background: rgb(34 197 94 / .09); }
+.md-callout--tip .md-callout__label       { color: #16653c; }
+.md-callout--important { border-left-color: #8b5cf6; background: rgb(139 92 246 / .09); }
+.md-callout--important .md-callout__label { color: #5b3bab; }
+.md-callout--warning   { border-left-color: var(--color-sev-warn); background: rgb(234 179 8 / .10); }
+.md-callout--warning .md-callout__label   { color: #7a5c00; }
+.md-callout--danger    { border-left-color: var(--color-sev-bad); background: rgb(239 68 68 / .09); }
+.md-callout--danger .md-callout__label    { color: #a12a2a; }
+.md-callout--reco      { border-left-color: var(--color-gold-hover); }
+
+/* Caixa desenhada, nao input do navegador. */
+.md-checklist { list-style: none; padding-left: .15em; }
+.md-check { display: flex; align-items: flex-start; gap: .55em; }
+.md-check__box {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  margin-top: .18em;
+  font-size: 10px;
+  line-height: 1;
+  color: #fff;
+  border: 1.5px solid #c2b9a4;
+  border-radius: 4px;
+}
+.md-check.is-done .md-check__box { background: var(--color-sev-good); border-color: var(--color-sev-good); }
+/* Clicavel so onde o container trata o clique (drawer da tarefa). */
+.md-check__box[data-check] { cursor: pointer; transition: border-color .12s ease, background .12s ease; }
+.md-check__box[data-check]:hover { border-color: var(--color-gold-hover); }
+.md-check__box[data-check]:focus-visible { outline: 2px solid var(--color-gold-hover); outline-offset: 1px; }
+.md-check.is-done > span:last-child { color: #7a7263; text-decoration: line-through; }
+
+/* No chat a lista so informa. Sem caixa, sem cursor de clique. */
+.md-status { display: flex; align-items: flex-start; gap: .55em; }
+.md-status__icone { flex: 0 0 auto; display: inline-flex; margin-top: .3em; color: #b5ad9c; }
+.md-status.is-done .md-status__icone { color: var(--color-sev-good); }
+.md-status.is-done > span:last-child { color: #7a7263; }
+.md-status.is-doing .md-status__icone { color: var(--color-gold-hover); }
+.md-check.is-doing .md-check__box { border-color: var(--color-gold-hover); background: linear-gradient(90deg, var(--color-gold-hover) 50%, transparent 50%); }
+
+.md-code {
+  margin: 1em 0;
+  overflow: hidden;
+  border: 1px solid #2e2c27;
+  border-radius: 10px;
+  background: #24231f;
+}
+.md-code__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .4em .75em;
+  font-size: 10px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #a8a294;
+  background: #1c1b18;
+}
+.md-code__copy {
+  font: inherit;
+  font-size: 10px;
+  letter-spacing: .04em;
+  color: #a8a294;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.md-code__copy:hover { color: var(--color-gold); }
+.md-code__acoes { display: inline-flex; gap: .75em; }
+.md-tabela__barra { display: flex; justify-content: flex-end; margin: -.6em 0 1em; }
+.md-tabela__painel {
+  font: inherit;
+  font-size: 11px;
+  color: #8a8478;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.md-tabela__painel:hover { color: var(--color-gold-ink); }
+.md-code .bloco-vivo__quadro { background: #fffdf8; }
+.md-code pre { margin: 0; padding: .85em; overflow-x: auto; }
+.md-code code { font-family: var(--font-mono); font-size: 12px; color: #e8e2d4; }
+
+/* O bloco vivo (domain/blocoVivo): a altura vem do próprio bloco. */
+.bloco-vivo { margin: 1em 0; }
+.bloco-vivo__quadro { display: block; width: 100%; height: 120px; border: 0; background: transparent; }
+
+.bloco-vivo-proposta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5em;
+  margin: .5em 0 1em;
+  padding: .6em .8em;
+  font-size: 12px;
+  color: #57534e;
+  background: #fffdf8;
+  border: 1px solid #e6e0d0;
+  border-radius: 10px;
+}
+
+.mermaid-container {
+  margin: 1em 0;
+  padding: .8em;
+  overflow-x: auto;
+  background: #fffdf8;
+  border: 1px solid #e6e0d0;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.sev-bad  { color: #c33b2e !important; font-weight: 600; }
+.sev-good { color: #167a4a !important; font-weight: 600; }
+.sev-warn { color: #8a6d00 !important; font-weight: 600; }
+
+/* O modelo escreve so as classes; o molde esta no RESPONSE_SYSTEM_PROMPT. */
+.kpi-card {
+  margin: 1em 0;
+  padding: .9em 1em;
+  background: #fffdf8;
+  border: 1px solid #e6e0d0;
+  border-left: 3px solid var(--color-gold);
+  border-radius: 12px;
+}
+.kpi-card__titulo {
+  display: block;
+  margin-bottom: .65em;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: #7a7263;
+}
+.kpi-card__grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: .9em 1.25em;
+}
+.kpi { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.kpi__rotulo { font-size: 11px; color: #7a7263; }
+.kpi__valor {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  color: #1a1a1a;
+}
+.kpi__valor.is-ruim { color: #c33b2e; }
+.kpi__valor.is-bom  { color: #167a4a; }
+.kpi__delta { font-size: 11px; color: #7a7263; }
+.kpi__delta.is-ruim { color: #c33b2e; }
+.kpi__delta.is-bom  { color: #167a4a; }
+
+/* O `prose` pinta todo <pre> de escuro; este some assim que vira SVG. */
+.mermaid-container pre.mermaid {
+  margin: 0;
+  padding: 0;
+  color: #7a7263;
+  background: transparent;
+  font-size: 11px;
+  text-align: left;
+  white-space: pre-wrap;
+}
+.mermaid-container pre.mermaid--invalido { color: #c33b2e; }
+.mermaid-svg svg { max-width: 100%; height: auto; }
+
+.sentury-scroll {
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+}
+
+/* Codigo do diagrama: presente, sem competir com o desenho. */
+.mermaid-fonte { margin-top: .5em; }
+.mermaid-fonte > summary {
+  cursor: pointer;
+  font-size: 10px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: #8a8272;
+}
+.mermaid-fonte > summary:hover { color: var(--color-gold-hover); }
+.mermaid-fonte pre {
+  margin-top: .4em;
+  overflow: auto;
+  border-radius: 8px;
+  background: #171613;
+  padding: 10px 12px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #f3f1ea;
+}
+
+/* Pensamento: formatado como o resto, mas apagado — e leitura de apoio, nao
+   a resposta. */
+.sentury-pensamento p { margin: .35em 0; }
+.sentury-pensamento strong { font-weight: 600; color: #8a8272; }
+.sentury-pensamento code {
+  border-radius: 4px;
+  background: #ece7da;
+  padding: 0 .3em;
+  font-style: normal;
+  font-size: 10px;
+  color: #6b6455;
+}
+.sentury-pensamento ul, .sentury-pensamento ol { margin: .3em 0; padding-left: 1.1em; }
+.sentury-pensamento li { margin: .12em 0; }
+.sentury-pensamento h1, .sentury-pensamento h2, .sentury-pensamento h3,
+.sentury-pensamento h4, .sentury-pensamento h5, .sentury-pensamento h6 {
+  margin: .4em 0 .2em;
+  font-size: 11px;
+  font-weight: 600;
+  color: #8a8272;
+}
+
+/* Residentes: só o estado mexe na coruja. */
+.res-respira { animation: res-respira 3.6s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes res-respira { 0%, 100% { transform: translateY(0) scaleY(1); } 50% { transform: translateY(1.5px) scaleY(.985); } }
+.res-trabalha { animation: res-trabalha 1.1s ease-in-out infinite; }
+@keyframes res-trabalha { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+.res-pula { animation: res-pula 1.8s ease-in-out infinite; }
+@keyframes res-pula { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+.res-acena { animation: res-acena 1.4s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes res-acena { 0%, 100% { transform: rotate(10deg); } 50% { transform: rotate(-18deg); } }
+.res-pisca { animation: res-pisca 4.5s infinite; transform-box: fill-box; transform-origin: 50% 50%; }
+@keyframes res-pisca { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+.res-z { animation: res-z 3s ease-in infinite; opacity: 0; }
+.res-z2 { animation-delay: 1s; }
+.res-z3 { animation-delay: 2s; }
+@keyframes res-z { 0% { opacity: 0; transform: translate(0, 4px); } 30% { opacity: .9; } 100% { opacity: 0; transform: translate(6px, -10px); } }
+.res-luz { animation: res-luz 1.2s ease-in-out infinite; }
+.res-parada, .res-parada * { animation: none !important; }
+@keyframes res-luz { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+.res-balao { animation: res-balao 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes res-balao { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+@media (prefers-reduced-motion: reduce) {
+  .res-respira, .res-trabalha, .res-pula, .res-acena, .res-pisca, .res-luz, .res-balao { animation: none; }
+  .res-z { animation: none; opacity: .8; }
+}

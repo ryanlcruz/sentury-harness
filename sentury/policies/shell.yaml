@@ -1,0 +1,214 @@
+# O que o Sentury pode executar na máquina.
+#
+# Está aqui, e não no código, porque é política — muda por instalação, por
+# cliente e por sistema, sem virar release. O código só lê.
+#
+# Regra que sustenta o arquivo: lista de PERMISSÃO, não de bloqueio. Bloquear
+# `rm` deixa passar `find -delete`. Só o que está declarado roda.
+#
+# `null` como valor de um programa significa "qualquer subcomando"; uma lista
+# significa "só estes".
+
+versao: 1
+
+# Aprovação pontual não amplia a lista de comandos permitidos.
+confirmar_na_hora:
+  caminhos:
+    - /etc/systemd/system
+    - /usr/lib/systemd/system
+    - /lib/systemd/system
+    - /etc/ssh/sshd_config
+    - /etc/ssh/sshd_config.d
+    - /etc/sudoers
+    - /etc/sudoers.d
+    - /etc/fstab
+    - /etc/docker
+    - /var/run/docker.sock
+    - /run/docker.sock
+    - /etc/ufw
+    - /etc/nftables.conf
+    - '%SystemRoot%/System32/drivers/etc/hosts'
+  programas_remotos: [docker, podman, ssh, tailscale, ufw, iptables, ip6tables, nft, firewall-cmd, reboot, shutdown]
+  servicos_remotos:
+    - programa: systemctl
+      acoes: [start, stop, restart, reload, enable, disable, mask, unmask, edit]
+      alvos: [sentury, sentury.service, ssh, ssh.service, sshd, sshd.service, tailscaled, tailscaled.service]
+  interpretadores_remotos: true
+
+# "Nesta conversa" num script vale para os próximos scripts da conversa na
+# pasta de trabalho. Script com um destes trechos continua perguntando um a
+# um, porque apagar não se desfaz pela versão do arquivo.
+script_que_apaga:
+  - 'Remove-Item'
+  - 'Clear-Content'
+  - '\brm\b'
+  - '\brmdir\b'
+  - '\bdel\b'
+  - '\brd\s+/'
+  - 'unlink'
+  - 'rmtree'
+  - 'os\.remove'
+  - 'git\s+clean'
+  - 'git\s+reset\s+--hard'
+
+# Informação sobre o projeto, sem efeito colateral. Roda sem perguntar.
+leitura:
+  # So muda a pasta do proprio shell do comando; `cd x && rg y` e leitura.
+  cd: null
+  pwd: null
+  git: [status, log, diff, show, branch, remote, rev-parse, ls-files, blame]
+  ls: null
+  dir: null
+  cat: null
+  type: null
+  head: null
+  tail: null
+  wc: null
+  find: null
+  rg: null
+  grep: null
+  findstr: null
+  npm: [ls, view, outdated]
+  pip: [list, show, freeze]
+  # Cmdlets do PowerShell que so leem. Bloco `{}` (Where-Object, ForEach-Object,
+  # propriedade calculada) e codigo e cai no caminho com aprovacao.
+  get-childitem: null
+  gci: null
+  get-content: null
+  gc: null
+  get-item: null
+  get-location: null
+  test-path: null
+  select-string: null
+  sls: null
+  select-object: null
+  sort-object: null
+  measure-object: null
+  format-table: null
+  format-list: null
+  out-string: null
+  get-process: null
+
+# `git config` grava configuracao, e `core.fsmonitor` ou `core.pager` viram
+# comando que o git executa sozinho. `npm run` e `npm test` rodam o script do
+# package.json, que e codigo. Nenhum dos tres e leitura.
+
+# Muda alguma coisa. Só com permissão registrada para aquele comando.
+# Interpretador NUNCA e leitura. Aqui o argumento e codigo, e codigo nao tem
+# padrao para uma lista casar: `python x.py` faz o que estiver dentro de x.py.
+# A permissao destes programas cobre o CONTEUDO do script, nao o verbo — ver
+# `permissoes.assinatura`. `pytest` entra porque carrega conftest.py, que e
+# codigo. Rodar sai da lista de leitura e passa a pedir permissao.
+executa:
+  python: null
+  python3: null
+  py: null
+  pytest: null
+  node: null
+  powershell: null
+  pwsh: null
+  bash: null
+  sh: null
+
+escrita:
+  git: [add, commit, checkout, switch, restore, stash, tag]
+  mkdir: null
+  cp: null
+  copy: null
+  mv: null
+  move: null
+  npm: [install, ci, run, test]
+  pip: [install]
+
+# Nunca, em modo nenhum. Cada um destrói ou escapa de um jeito que não dá
+# para revisar depois.
+negados:
+  - rm
+  - rmdir
+  - del
+  - erase
+  - format
+  - mkfs
+  - dd
+  - shutdown
+  - reboot
+  - sudo
+  - su
+  - chmod
+  - chown
+  - curl
+  - wget
+  - ssh
+  - scp
+  - nc
+  # Os mesmos, no PowerShell.
+  - remove-item
+  - ri
+  - stop-computer
+  - restart-computer
+  - invoke-webrequest
+  - iwr
+  - invoke-restmethod
+  - irm
+
+# O comando pode ser legítimo e o ALVO não: `cat` é leitura normal, e
+# `cat .env` entrega as chaves para dentro do histórico da conversa, que fica
+# gravado. Casa por nome do arquivo (início, fim ou igual).
+alvos_proibidos:
+  - .env
+  - auth.json
+  - cofre.json
+  - permissoes.json
+  - credentials
+  - id_rsa
+  - id_ed25519
+  - .pem
+  - .pfx
+  - .p12
+  - secrets
+  - shadow
+
+# Pasta inteira fora de alcance, em qualquer nível do caminho.
+pastas_proibidas:
+  - .ssh
+  - .aws
+  - .gnupg
+  - .codex
+
+limites:
+  # Saída maior que isso vira ruído no contexto e custo em token.
+  saida_chars: 20000
+  timeout_padrao_s: 60
+
+# Interpretador so com a flag de versao nao roda codigo: e leitura. So a
+# linha exata (`python --version`); `python -v` abre o interpretador e espera.
+consulta_de_versao:
+  python: [--version, -V]
+  python3: [--version, -V]
+  py: [--version, -V]
+  node: [--version, -v]
+  pip: [--version, -V]
+  npm: [--version, -v]
+  git: [--version]
+  pytest: [--version]
+
+# Opcoes que consomem o argumento seguinte: o verbo de `git -C <pasta> log`
+# e `log`, nao a pasta.
+opcoes_com_valor:
+  git: [-C, -c, --git-dir, --work-tree, --namespace]
+
+# Programas cujo primeiro argumento é um VERBO: `git commit` e `git push` são
+# permissões diferentes. Para o resto, `mkdir aqui` e `mkdir ali` são a mesma
+# decisão, e pedir de novo viraria ruído — e ruído se aprova no automático.
+com_subcomando:
+  # O nome do residente entra na chave: aprovar a criação de `alfa` não libera
+  # criar outro, e cada membro de uma equipe tem a própria aprovação.
+  - criar_agente
+  - git
+  - npm
+  - pip
+  - docker
+  - yarn
+  - pnpm
+  - poetry
+  - uv

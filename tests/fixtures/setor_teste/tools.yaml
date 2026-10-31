@@ -1,0 +1,17 @@
+consultar_medida:
+  destino_residente: proibida
+  categoria: analise
+  descricao: Consulta a medida dos registros por grupo.
+  orientacao: Considere esta consulta para obter os valores do setor antes de apresentar uma conclusão.
+  quando_usar: [medida, registros, grupo, consultar, causa, relação]
+  fonte_de_grafico: true
+  fonte_de_export: true
+  traz_dado: true
+  replay_leitura: true
+  determinista: true
+  parametros:
+    type: object
+    properties:
+      grupo:
+        type: [string, "null"]
+    additionalProperties: false

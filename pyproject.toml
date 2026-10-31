@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sentury"
+version = "0.1.0"
+description = "Agente generalista que trabalha no seu computador."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.13,<3.14"
+# O roteador de modelos (RobinBandit) mora em sentury/plugins/robinbandit e é
+# instalado da pasta, antes deste pacote: ver scripts/instalar.*.
+dependencies = [
+    "fastapi==0.115.0",
+    "uvicorn[standard]==0.30.6",
+    "websockets>=13,<17",
+    "pydantic>=2.12.5,<3.0.0",
+    "pydantic-settings==2.5.2",
+    "httpx>=0.28.1,<1.0.0",
+    "fpdf2==2.8.1",
+    "pandas==2.2.3",
+    "numpy>=2.0.0",
+    "matplotlib==3.9.2",
+    "openpyxl==3.1.5",
+    "croniter==3.0.3",
+    "Pillow>=10.0.0",
+    "pyfiglet==1.0.2",
+    "python-pptx==1.0.2",
+    "google-genai>=2.10.0",
+    "markitdown[pdf,docx,xlsx,pptx]",
+    "pypdf==5.9.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.3",
+    "pytest-asyncio==0.24.0",
+    "pytest-xdist==3.8.0",
+    "hypothesis==6.92.2",
+    "python-xlib==0.33; sys_platform == 'linux'",
+]
+extras = [
+    "scipy==1.18.0",
+    "fastembed==0.8.0",
+    "playwright==1.61.0",
+    "reportlab==4.4.3",
+    "pdfplumber==0.11.7",
+    "pypdfium2==4.30.0",
+    "python-xlib==0.33; sys_platform == 'linux'",
+    "comtypes==1.4.11; sys_platform == 'win32'",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["sentury*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+asyncio_mode = "auto"
+markers = ["docker: integração com imagens locais e daemon Docker"]
+# Sem asyncio_default_fixture_loop_scope: há fixtures async de escopo de módulo.
+testpaths = ["tests"]
+norecursedirs = ["referencia", "sentury/skills", ".hypothesis", ".venv", "node_modules"]

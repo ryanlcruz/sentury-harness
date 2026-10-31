@@ -1,0 +1,45 @@
+# Rotas de recuperação: quando uma ferramenta falha de um jeito conhecido, o
+# resultado já traz o caminho que funciona, para o modelo não insistir no mesmo
+# erro nem desistir respondendo só em texto.
+#
+# Recusa da política (o que nunca roda, o que a pessoa negou) e pedido de
+# permissão não ganham rota: isso fica no código e não se muda por aqui, porque
+# seria ensinar o modelo a contornar a regra.
+versao: 1
+
+# Cada rota casa por `codigo_erro` (o código do resultado) ou por
+# `motivo_contem` (um trecho do motivo que a própria ferramenta devolve).
+# Em `instrucao`, `{shell}` vira `powershell` no Windows e `bash` no resto.
+rotas:
+  - ferramenta: executar_python
+    codigo_erro: EXEC_IMPORT_NEGADO
+    alternativa: executar_script
+    instrucao: >-
+      O import não cabe no sandbox. Use `executar_script` com linguagem `python`: ela
+      mostra o conteúdo à pessoa e pede a aprovação necessária.
+
+  - ferramenta: executar_python
+    codigo_erro: EXEC_TIMEOUT
+    alternativa: executar_script
+    instrucao: >-
+      O cálculo passou do tempo do sandbox. Use `executar_script` com linguagem `python`,
+      um timeout explícito e o trabalho dividido em partes menores.
+
+  - ferramenta: executar_comando
+    motivo_contem: metacaractere
+    alternativa: executar_script
+    instrucao: >-
+      Este comando precisa de pipe ou redirecionamento. Use `executar_script` com
+      linguagem `{shell}` e passe o corpo completo do script.
+
+# O que acompanha a instrução no resultado da ferramenta.
+aviso: >-
+  [ROTA DE RECUPERACAO] {instrucao} Enquanto essa rota existir, ela resolve melhor do
+  que desistir e responder apenas em texto.
+
+# Quando o modelo responde sem chamar a rota de uma falha que acabou de
+# acontecer. Vai uma vez por falha: dizer que vai usar a rota não a executa.
+rota_pendente: >-
+  A tarefa ainda não foi feita: `{origem}` falhou, e o caminho que funciona é `{alternativa}`,
+  que ainda não foi chamado. Se a tarefa continua valendo, chame `{alternativa}` agora; se há
+  um motivo para não seguir, diga qual na resposta.

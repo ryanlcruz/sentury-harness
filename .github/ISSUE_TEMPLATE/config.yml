@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Falha de segurança
+    url: https://github.com/ryanlcruz/sentury-harness/security/advisories/new
+    about: Não abra issue pública; o aviso privado só a manutenção vê.

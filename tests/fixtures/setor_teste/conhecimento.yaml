@@ -1,0 +1,5 @@
+conhecimento:
+  - id: medida
+    titulo: Medida dos registros
+    tags: [medida, registros]
+    texto: A medida representa o valor observado em cada grupo dos registros.

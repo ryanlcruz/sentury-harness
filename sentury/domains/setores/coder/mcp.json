@@ -1,0 +1,25 @@
+{
+  "_comentario": [
+    "Servidores MCP que este setor traz junto. Mesmo formato do mcp.json do",
+    "usuario, para dar para testar copiando um bloco que ja funciona.",
+    "",
+    "O que muda: o id ganha o prefixo 'pacote:coder:' na leitura, e o painel",
+    "recusa editar ou remover daqui — o servidor e do pacote e some junto com",
+    "ele. env_vars declara so o NOME da variavel; o valor continua sendo do",
+    "ambiente de quem instalou.",
+    "",
+    "Vem desligado (ativo: false) porque e exemplo: ligar sozinho subiria um",
+    "processo que ninguem pediu na primeira vez que alguem espia o setor."
+  ],
+  "servidores": [
+    {
+      "id": "github",
+      "nome": "GitHub",
+      "transporte": "stdio",
+      "comando": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env_vars": ["GITHUB_TOKEN"],
+      "ativo": false
+    }
+  ]
+}

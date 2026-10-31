@@ -1,0 +1,50 @@
+# Gatilhos que rodam sozinhos quando algo acontece.
+#
+# Uma instrução no prompt é um pedido: o modelo pode seguir, esquecer, ou
+# decidir que não vale a pena desta vez. Um hook dispara porque o evento
+# aconteceu, e o modelo descobre pelo resultado. É essa diferença que separa
+# "ele pode editar arquivo" de "toda vez que ele edita, o teste roda".
+#
+# Todos vêm desligados: gatilho que roda comando sem ninguém ter pedido seria
+# uma porta de execução aberta por padrão.
+#
+# Declarar um hook diz quando um comando roda, não dá o direito de rodá-lo:
+# ele passa pela mesma política de permissão de qualquer outro comando. Se o
+# comando altera alguma coisa e ainda não foi autorizado, o hook não roda e o
+# agente é avisado disso.
+versao: 1
+
+# Eventos disponíveis:
+#   arquivo_alterado     uma ferramenta escreveu ou gerou um arquivo
+#   ferramenta_concluida uma ferramenta terminou (use `ferramenta:` para filtrar)
+#
+# Campos:
+#   padrao      glob do arquivo (`*.py`, `sentury/**`); casa caminho e nome
+#   ferramenta  só dispara para esta ferramenta; vazio vale para qualquer uma
+#   timeout_s   teto próprio; passando dele, o comando segue em segundo plano
+hooks:
+  # Sem este gatilho, conferir o que foi mudado depende de o modelo lembrar de
+  # conferir, e é justamente quando ele errou que a lembrança falta.
+  - nome: testes-apos-edicao
+    quando: arquivo_alterado
+    padrao: "*.py"
+    comando: python -m pytest -q --timeout=60
+    descricao: Roda a suíte quando um arquivo Python é alterado
+    timeout_s: 120
+    ativo: false
+
+  - nome: formata-apos-edicao
+    quando: arquivo_alterado
+    padrao: "*.py"
+    comando: python -m ruff format --check .
+    descricao: Confere formatação depois de uma edição
+    timeout_s: 30
+    ativo: false
+
+  - nome: status-depois-do-comando
+    quando: ferramenta_concluida
+    ferramenta: executar_comando
+    comando: git status --porcelain
+    descricao: Mostra o que ficou diferente depois de um comando
+    timeout_s: 15
+    ativo: false

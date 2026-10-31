@@ -1,0 +1,45 @@
+"""Motivos públicos da chamada ficam separados do erro técnico e das credenciais."""
+import contextvars
+
+
+def identidade_da_falha(provedor, erro):
+    if getattr(provedor, "e_indisponivel", False):
+        return None, None
+    falhas = getattr(erro, "falhas", None)
+    if falhas:
+        nome, detalhe = list(falhas.items())[-1]
+        return nome, detalhe.get("modelo")
+    return (getattr(provedor, "last_provider", None) or getattr(provedor, "name", type(provedor).__name__),
+            getattr(provedor, "last_attempted_model", None))
+
+
+class MotivosDaChamada:
+    @property
+    def ultimas_falhas(self):
+        campo = getattr(self, "_motivos", None)
+        return {nome: dict(valor) for nome, valor in (campo.get() or {}).items()} if campo else {}
+
+    def _abrir_motivos(self):
+        if not hasattr(self, "_motivos"):
+            self._motivos = contextvars.ContextVar(f"robin_motivos_{id(self)}", default=None)
+        self._motivos.set({})
+
+    def _registrar_falha(self, nome, tipo, erro, modelo=None):
+        if getattr(erro, "falhas", None):
+            atual = self.ultimas_falhas
+            atual.update({chave: dict(valor) for chave, valor in erro.falhas.items()})
+            self._motivos.set(atual)
+            return
+        detalhe = {"tipo": tipo}
+        if modelo:
+            detalhe["modelo"] = modelo
+        vistos = set()
+        while erro is not None and id(erro) not in vistos:
+            vistos.add(id(erro))
+            if getattr(erro, "motivo_publico", None):
+                detalhe.update(motivo=erro.motivo_publico, retoma_em=getattr(erro, "retoma_em", ""))
+                break
+            erro = erro.__cause__ or erro.__context__
+        atual = self.ultimas_falhas
+        atual[nome] = detalhe
+        self._motivos.set(atual)

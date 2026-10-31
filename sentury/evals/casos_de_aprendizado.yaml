@@ -1,0 +1,130 @@
+# Casos da bancada do aprendizado (`python -m sentury.evals.aprendizado`).
+#
+# Cada caso é uma conversa que já aconteceu e o que a pausa de revisão deveria
+# guardar dela. `espera`:
+#   nada: true            nenhuma escrita em skill nem em memória
+#   alguma: [termos]      alguma escrita contém um dos termos
+#   memoria: [termos]     algum item da memória contém um dos termos
+#   skill: nome           a skill com esse nome foi criada ou corrigida
+#   skill_contem: [termos] o texto dessa skill contém um dos termos
+#   sobra_uma_de: [a, b]  das skills do usuário a e b, exatamente uma continua
+# `skills_antes`: skills do usuário que já existem quando a pausa roda.
+# `nao_pode`: termos que nenhuma escrita pode conter.
+#
+# A conversa termina com a resposta do assistente, como na vida real: a pausa
+# roda depois do turno.
+
+- nome: correcao_de_formato
+  descricao: a pessoa reclama do tamanho da resposta e diz como quer
+  conversa:
+    - {role: user, content: "me explica o que mudou no relatório de vendas desse mês"}
+    - {role: assistant, content: "Claro. O relatório de vendas deste mês apresenta diversas mudanças importantes que merecem atenção detalhada. Em primeiro lugar, a estrutura do documento foi reorganizada para facilitar a leitura, com seções separadas por região. Em segundo lugar, foram incluídas novas métricas de conversão por canal, que antes não apareciam. Em terceiro lugar, os gráficos passaram a mostrar a comparação com o mesmo mês do ano anterior, permitindo uma leitura sazonal. Além disso, a seção de produtos agora traz a margem por item. Por fim, o resumo executivo ficou mais curto e objetivo."}
+    - {role: user, content: "muito longo. pra mim sempre responde em no máximo 5 linhas, direto ao ponto, eu leio no celular"}
+    - {role: assistant, content: "Entendido. Novas seções por região, conversão por canal, comparação anual nos gráficos, margem por produto e resumo mais curto."}
+  espera:
+    memoria: ["5 linhas", "cinco linhas", "curt", "celular"]
+
+- nome: correcao_de_procedimento
+  descricao: a pessoa corrige o jeito de fazer uma classe de tarefa
+  conversa:
+    - {role: user, content: "converte 1.200 dólares em reais pro relatório de despesas"}
+    - {role: assistant, content: "Pela cotação de agora, R$ 6.540,00."}
+    - {role: user, content: "não, em relatório de despesas sempre usa a cotação de fechamento do dia anterior, a do Banco Central (PTAX). refaz"}
+    - {role: assistant, content: "Refeito com a PTAX de fechamento de ontem: R$ 6.498,00."}
+  espera:
+    alguma: ["ptax", "fechamento"]
+
+- nome: tecnica_que_funcionou
+  descricao: um caminho não óbvio resolveu e serviria de novo
+  conversa:
+    - {role: user, content: "lê o arquivo exportado do ERP em C:/dados/pedidos.csv e me diz quantos pedidos tem"}
+    - {role: system, content: "RESULTADO DA FERRAMENTA \"executar_python\": FALHOU.\nErro: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe7 in position 112"}
+    - {role: system, content: "RESULTADO DA FERRAMENTA \"executar_python\" (já executada): {'linhas': 1834, 'observacao': 'lido com encoding=latin-1 e sep=;'}"}
+    - {role: assistant, content: "São 1.834 pedidos. O arquivo do ERP vem em latin-1 e separado por ponto e vírgula; com isso ele abriu."}
+    - {role: user, content: "boa, os arquivos desse ERP são sempre assim"}
+    - {role: assistant, content: "Combinado, vou abrir os próximos do mesmo jeito."}
+  espera:
+    alguma: ["latin-1", "latin1", "iso-8859"]
+
+- nome: falha_de_ambiente
+  descricao: faltava um programa; a pessoa instalou e funcionou
+  conversa:
+    - {role: user, content: "converte o video.mov da área de trabalho pra mp4"}
+    - {role: system, content: "RESULTADO DA FERRAMENTA \"executar_comando\": FALHOU.\nErro: 'ffmpeg' não é reconhecido como um comando interno ou externo"}
+    - {role: assistant, content: "O ffmpeg não está instalado nesta máquina. Instale com `winget install ffmpeg` e eu refaço."}
+    - {role: user, content: "instalei"}
+    - {role: system, content: "RESULTADO DA FERRAMENTA \"executar_comando\" (já executada): {'saida': 'video.mp4 gerado', 'codigo': 0}"}
+    - {role: assistant, content: "Pronto, o video.mp4 está na área de trabalho."}
+  espera: {}
+  nao_pode: ["não funciona", "nao funciona", "não está instalado", "nao esta instalado", "não serve"]
+
+- nome: erro_transitorio
+  descricao: o provedor caiu e a segunda tentativa deu certo
+  conversa:
+    - {role: user, content: "pesquisa a cotação do bitcoin agora"}
+    - {role: system, content: "RESULTADO DA FERRAMENTA \"buscar_web\": FALHOU.\nErro: tempo esgotado (timeout) ao consultar o provedor de busca"}
+    - {role: system, content: "RESULTADO DA FERRAMENTA \"buscar_web\" (já executada): [{'titulo': 'Bitcoin hoje', 'trecho': 'BTC a US$ 61.200'}]"}
+    - {role: assistant, content: "O bitcoin está em torno de US$ 61.200 agora."}
+  espera:
+    nada: true
+
+- nome: resultado_de_um_dia
+  descricao: uma análise comum, sem correção nem técnica nova
+  conversa:
+    - {role: user, content: "quanto vendemos em setembro?"}
+    - {role: system, content: "RESULTADO DA FERRAMENTA \"executar_python\" (já executada): {'total_setembro': 120450.0}"}
+    - {role: assistant, content: "Em setembro foram R$ 120.450,00 em vendas."}
+    - {role: user, content: "valeu"}
+    - {role: assistant, content: "Por nada."}
+  espera:
+    nada: true
+  nao_pode: ["120"]
+
+- nome: skill_carregada_errada
+  descricao: uma skill embutida estava incompleta e a pessoa corrigiu
+  conversa:
+    - {role: user, content: "faz um gráfico de barras das vendas por mês"}
+    - {role: system, content: "[INSTRUÇÃO PROCEDURAL DE SKILL CARREGADA]\n\n=== SKILL: grafico ===\nDescrição: Gráfico em PNG a partir de CSV ou JSON."}
+    - {role: assistant, content: "Pronto, o gráfico está em vendas.png."}
+    - {role: user, content: "o eixo y começou em 80 mil e parece que caiu pela metade. gráfico de barras tem que começar o eixo no zero, sempre"}
+    - {role: assistant, content: "Corrigi: o eixo y agora começa em zero."}
+  espera:
+    skill: grafico
+    skill_contem: ["zero", "0"]
+
+- nome: decisao_de_projeto
+  descricao: a pessoa conta uma decisão que vale para as próximas conversas
+  conversa:
+    - {role: user, content: "esquece o SQLite. decidimos que o projeto Atlas vai usar Postgres a partir de agora, o banco já está no ar"}
+    - {role: assistant, content: "Combinado: Atlas passa a usar Postgres."}
+  espera:
+    memoria: ["postgres"]
+
+- nome: conversa_comum
+  descricao: perguntas simples, sem nada durável
+  conversa:
+    - {role: user, content: "quanto é 15% de 340?"}
+    - {role: assistant, content: "51."}
+    - {role: user, content: "e de 520?"}
+    - {role: assistant, content: "78."}
+  espera:
+    nada: true
+
+- nome: skills_sobrepostas
+  descricao: duas skills do usuário cobrem a mesma tarefa; a pausa junta e aposenta uma
+  skills_antes:
+    - nome: conversao-de-moeda
+      descricao: converte valores entre moedas pela cotação
+      corpo: |
+        ## Passos
+        1. Use a PTAX de fechamento do dia anterior.
+    - nome: cambio-de-valores
+      descricao: converte valores entre moedas pela cotação do dia
+      corpo: |
+        ## Passos
+        1. Arredonde o resultado em duas casas.
+  conversa:
+    - {role: user, content: "converte 300 euros em reais pro reembolso"}
+    - {role: assistant, content: "Pela PTAX de ontem, R$ 1.812,30."}
+  espera:
+    sobra_uma_de: [conversao-de-moeda, cambio-de-valores]

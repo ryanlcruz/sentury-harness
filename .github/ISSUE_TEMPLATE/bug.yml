@@ -1,0 +1,51 @@
+name: Algo não funciona
+description: O Sentury fez algo diferente do esperado.
+labels: ["bug"]
+body:
+  - type: textarea
+    id: aconteceu
+    attributes:
+      label: O que aconteceu
+      description: O que o Sentury fez, com a mensagem de erro, se houve uma.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduzir
+    attributes:
+      label: Como reproduzir
+      description: O pedido que você fez, o modelo e o esforço escolhidos, e os passos até o problema. Quanto mais exato, mais rápido o conserto.
+      placeholder: |
+        1. Na conversa, com o modelo X no esforço Médio, pedi: "..."
+        2. O Sentury chamou a ferramenta ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: esperado
+    attributes:
+      label: O que você esperava
+    validations:
+      required: true
+  - type: input
+    id: versao
+    attributes:
+      label: Versão ou commit
+      placeholder: "git rev-parse --short HEAD"
+    validations:
+      required: true
+  - type: dropdown
+    id: sistema
+    attributes:
+      label: Sistema
+      options:
+        - Windows
+        - Linux
+        - macOS
+    validations:
+      required: true
+  - type: textarea
+    id: registro
+    attributes:
+      label: Registro
+      description: O trecho do log da API ou do console do navegador. Confira antes que não há chave, token ou caminho pessoal nele.
+      render: text

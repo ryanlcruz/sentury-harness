@@ -1,0 +1,74 @@
+/* O visual do Sentury dentro do bloco vivo: os mesmos tokens da interface e
+   algumas peças prontas. O bloco roda isolado e não alcança o CSS da página,
+   por isso o kit vai junto em cada bloco. */
+:root {
+  --tinta: #1c1b18;
+  --tinta-2: #57534e;
+  --tinta-3: #8a857b;
+  --tela: #fffdf8;
+  --painel: #f6f5f0;
+  --borda: #e6e0d0;
+  --cabecalho: #e9e4d8;
+  --ouro: #f5c400;
+  --ouro-forte: #c99f00;
+  --ouro-suave: #fff4b8;
+  --ouro-tinta: #6f5900;
+  --bom: #15803d;
+  --atencao: #a16207;
+  --ruim: #dc2626;
+  --raio: 10px;
+  color-scheme: light;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--tinta);
+}
+* { box-sizing: border-box; }
+body { margin: 0; padding: 2px; background: transparent; font-size: 14px; line-height: 1.5; }
+h1, h2, h3, h4 { margin: 0 0 8px; font-weight: 600; line-height: 1.25; }
+h1 { font-size: 18px; } h2 { font-size: 16px; } h3, h4 { font-size: 14px; }
+p { margin: 0 0 8px; }
+.ic { width: 1.1em; height: 1.1em; vertical-align: -0.18em; flex: none; }
+.cartao { background: var(--tela); border: 1px solid var(--borda); border-radius: var(--raio); padding: 14px 16px; }
+.grade { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+.linha { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.coluna { display: flex; flex-direction: column; gap: 8px; }
+.rotulo { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--tinta-3); }
+.numero { font-size: 28px; font-weight: 650; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.sub { font-size: 12px; color: var(--tinta-2); }
+.bom { color: var(--bom); } .atencao { color: var(--atencao); } .ruim { color: var(--ruim); }
+.etiqueta { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 2px 8px; font-size: 11px; background: var(--painel); border: 1px solid var(--borda); color: var(--tinta-2); }
+.etiqueta.ouro { background: var(--ouro-suave); border-color: #f0dd8a; color: var(--ouro-tinta); }
+.botao { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--borda); background: var(--tela); color: var(--tinta); border-radius: 8px; padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+.botao:hover { border-color: var(--ouro-forte); }
+.botao.principal { background: var(--tinta); border-color: var(--tinta); color: #fff; }
+table.tabela { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--borda); border-radius: var(--raio); overflow: hidden; font-size: 13px; }
+.tabela th { background: var(--cabecalho); text-align: left; padding: 8px 10px; font-weight: 600; }
+.tabela td { padding: 8px 10px; border-top: 1px solid var(--borda); font-variant-numeric: tabular-nums; }
+.barra { height: 8px; border-radius: 999px; background: var(--painel); border: 1px solid var(--borda); overflow: hidden; }
+.barra > span { display: block; height: 100%; background: var(--ouro); border-radius: 999px; transform-origin: left; animation: crescer 0.7s ease-out both; }
+.barra.grossa { height: 12px; }
+@keyframes crescer { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+/* Paleta para o modelo: nome ou hex em `cor`; estas classes servem o HTML escrito à mão. */
+.cor-verde { color: #16a34a; } .cor-vermelho { color: #dc2626; } .cor-amarelo { color: #eab308; }
+.cor-laranja { color: #ea580c; } .cor-azul { color: #2563eb; } .cor-roxo { color: #7c3aed; }
+.cor-rosa { color: #db2777; } .cor-ciano { color: #0891b2; } .cor-cinza { color: #78716c; }
+.fundo-verde { background: #16a34a; } .fundo-vermelho { background: #dc2626; } .fundo-amarelo { background: #eab308; }
+.fundo-laranja { background: #ea580c; } .fundo-azul { background: #2563eb; } .fundo-roxo { background: #7c3aed; }
+.fundo-rosa { background: #db2777; } .fundo-ciano { background: #0891b2; } .fundo-cinza { background: #78716c; }
+.selo { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 8px; flex: none; }
+.selo .ic { width: 16px; height: 16px; }
+.selo--letra { color: #fff; font-weight: 700; font-size: 14px; }
+.anel { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.anel__arco { animation: girar 0.9s ease-out both; }
+@keyframes girar { from { stroke-dasharray: 0 400; } }
+.anel__centro { font-size: 20px; font-weight: 650; fill: var(--tinta); }
+.anel__centro--rosca { font-size: 14px; }
+.anel__legenda { font-size: 9px; fill: var(--tinta-3); letter-spacing: 0.04em; }
+.legenda { gap: 6px; font-size: 13px; min-width: 180px; flex: 1; }
+.ponto { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.item-lista { padding: 10px 0; }
+.item-lista + .item-lista { border-top: 1px solid var(--borda); }
+@media (prefers-reduced-motion: reduce) { .barra > span, .anel__arco { animation: none; } }
+input, select, textarea { font: inherit; }
+input[type="range"] { width: 100%; accent-color: var(--ouro-forte); }
+input[type="number"], input[type="text"], select { border: 1px solid var(--borda); border-radius: 8px; padding: 5px 8px; background: var(--tela); }
+svg text { font-family: inherit; }

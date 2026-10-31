@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [feat/roadmap-age-live-v1, main, "claude/**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -e "./sentury/plugins/robinbandit[yaml,providers]"
+      - run: pip install -e ".[dev]"
+      # Tela virtual para os testes do computer use no Linux.
+      - run: command -v Xvfb || (sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends xvfb)
+      - run: python -m pytest -q -n 4
+      # O CX é setor de demonstração: os testes dele rodam na mão, fora do CI.
+      - name: Testes dos setores instalados
+        run: |
+          for setor in sentury/domains/setores/*/tests; do
+            [ -d "$setor" ] || continue
+            [ "$setor" = "sentury/domains/setores/cx/tests" ] && continue
+            python -m pytest -q -n 4 "$setor"
+          done
+      # O RobinBandit tem a própria suíte, fora do testpaths da raiz.
+      - run: python -m pytest -q -n 4
+        working-directory: sentury/plugins/robinbandit

@@ -1,0 +1,51 @@
+# Exemplo de setor declarado sem código: um Sentury para engenharia.
+#
+# Copiar esta pasta, trocar o conteúdo e apontar SENTURY_DOMAIN=<nome> basta —
+# o motor é o mesmo. É o contrário de manter um `sentury-coder` inteiro, onde
+# cada correção precisaria ser repetida.
+#
+# Vem aqui como referência do formato; o setor ativo continua sendo o `cx`.
+nome: coder
+
+# O que ele sabe medir. `grupo: experiencia` é percepção de quem usa;
+# qualquer outra coisa é operação.
+metricas:
+  cobertura:
+    label: Cobertura de testes
+    unidade: "%"
+    fonte: suite de testes
+    descricao: Percentual de linhas cobertas por teste.
+    maior_melhor: true
+    grupo: operacao
+
+  tempo_de_build:
+    label: Tempo de build
+    unidade: s
+    fonte: CI
+    descricao: Duração média do build no pipeline.
+    maior_melhor: false
+    grupo: operacao
+
+  defeitos_em_producao:
+    label: Defeitos em produção
+    unidade: un
+    fonte: observabilidade
+    descricao: Incidentes abertos por falha de código no período.
+    maior_melhor: false
+    grupo: operacao
+
+# De onde o dado vem. Abstrato de propósito: cada instalação liga ao sistema
+# que tem.
+fontes: [repositorio, ci, observabilidade]
+
+# Ferramentas e skills que o setor expõe. Vazio = só as genéricas.
+capacidades:
+  - executar_comando
+  - ler_arquivo
+  - editar_arquivo
+  - codigo
+
+persona: |
+  Você é o Sentury trabalhando em engenharia de software. Responda com o
+  rigor de quem vai ter que manter o código depois: aponte o arquivo e a
+  linha, prefira a mudança pequena e verificável, e diga o que não sabe.

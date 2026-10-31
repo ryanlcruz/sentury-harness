@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+build/
+
+# Testes
+.pytest_cache/
+.pytest-*/
+.hypothesis/
+test-results/
+
+# Segredos
+.env
+.env.hq
+.sentury/
+
+# Interface
+node_modules/
+dist/
+sentury/client/node_modules/
+sentury/client/dist/
+
+# Local
+.tmp-uvicorn*.log
+scratch/
+referencia/
+docs/interno/
+Prove2Pass/
+AGENTS.md
+.claude/
+.superpowers/
+.vscode/

@@ -1,0 +1,12 @@
+.git
+.env
+.env.*
+.venv
+AGENTS.md
+referencia
+docs
+tests
+**/node_modules
+**/dist
+**/__pycache__
+**/*.pyc
